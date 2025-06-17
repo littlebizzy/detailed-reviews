@@ -192,3 +192,57 @@ add_filter('posts_orderby', function($orderby) {
     }
     return $orderby;
 });
+
+add_action( 'wp_footer', function() {
+    echo '<style>
+        .ratings-input-table {
+            width: 100%;
+            max-width: 800px;
+            margin: 2em auto;
+            padding: 1em;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fdfdfd;
+            box-sizing: border-box;
+        }
+
+        .ratings-row {
+            display: flex;
+            align-items: center;
+            padding: 0.75em 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .ratings-row:last-child {
+            border-bottom: none;
+        }
+
+        .ratings-row label {
+            flex: 1;
+            font-weight: 600;
+            font-size: 14px;
+            margin-right: 1em;
+            white-space: nowrap;
+        }
+
+        .ratings-row i {
+            font-size: 20px;
+            margin: 0 2px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .fa-star {
+            color: #ccc;
+        }
+
+        .selected-star {
+            color: #f39c12;
+        }
+
+        .hover-star {
+            color: #f39c12;
+        }
+    </style>';
+});
+
