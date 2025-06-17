@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Detailed Reviews
-Plugin URI: https://www.littlebizzy.com/plugins/force-https
+Plugin URI: https://www.littlebizzy.com/plugins/detailed-reviews
 Description: Allows 5-star reviews with multiple categories per post. Compatible with legacy WP Review Site data.
 Version: 1.0.0
 Author: LittleBizzy
