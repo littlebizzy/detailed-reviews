@@ -75,24 +75,53 @@ add_filter('preprocess_comment', function($commentdata) {
     return $commentdata;
 });
 
+// get ratings
+function get_ratings($custom_id = null) {
+	global $id, $wpdb;
+	$pid = $id;
+	if (is_numeric($custom_id)) {
+		$pid = $custom_id;
+	}
+
+	$categories = get_option('rs_categories');
+
+	$query = "SELECT rating_id, SUM(rating_value) / COUNT(rating_value) AS rating_value
+		FROM {$wpdb->ratings}
+		WHERE post_id = '{$pid}' AND rating_value > 0
+		GROUP BY rating_id";
+
+	$results = $wpdb->get_results($query);
+
+	$ratings = array();
+	foreach ($results as $row) {
+		$ratings[$row->rating_id] = $row->rating_value;
+	}
+
+	return $ratings;
+}
+
 // get average per-post rating
-function get_average_rating($post_id = null) {
-    $post_id = $post_id ?: get_the_ID();
-    $comments = get_comments(['post_id' => $post_id, 'status' => 'approve']);
-    $categories = DETAILED_REVIEWS_CATEGORIES;
-    if (!$comments || !$categories) return 0;
-    $sum = 0;
-    $count = 0;
-    foreach ($comments as $comment) {
-        foreach ($categories as $cid => $label) {
-            $val = get_comment_meta($comment->comment_ID, 'rs_ratings[' . $cid . ']', true);
-            if ($val) {
-                $sum += $val;
-                $count++;
-            }
-        }
-    }
-    return ($count > 0) ? round($sum / $count, 2) : 0;
+function get_average_rating($custom_id = null) {
+	global $id, $wpdb;
+	$pid = $id;
+	if (is_numeric($custom_id))
+		$pid = $custom_id;
+		
+	$ratings = get_ratings($pid);
+	
+	$sum = 0;
+	$count = 0;
+	foreach ($ratings as $rating) {
+		if ($rating > 0) {
+			$sum += $rating;
+			$count++;		
+		}
+	}
+	
+	if ($count > 0)
+		return $sum / $count;
+	else
+		return 0;
 }
 
 // get average rating of a single comment
