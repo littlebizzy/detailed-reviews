@@ -34,20 +34,19 @@ add_action('wp_enqueue_scripts', function() {
 
 // inject legacy style review input table into comment form
 function ratings_input_table() {
-    if ( ! defined('DETAILED_REVIEWS_CATEGORIES') || empty(DETAILED_REVIEWS_CATEGORIES) ) {
-        return;
-    }
-
-    echo '<table class="ratings"><tbody>';
-    foreach (DETAILED_REVIEWS_CATEGORIES as $index => $label) {
-        echo '<tr><td class="rating_label">' . esc_html($label) . '</td><td class="rating_value">';
-        for ( $i = 1; $i <= 5; $i++ ) {
-            $id = $index . '_' . $i;
-            echo '<a onclick="return rateIt(this,' . $index . ')" id="' . $id . '" title="' . $i . '" onmouseover="return rating(this,' . $index . ')" onmouseout="return rolloff(this,' . $index . ')"></a>';
+    $categories = DETAILED_REVIEWS_CATEGORIES;
+    if (!is_array($categories)) return;
+    echo '<div class="ratings-input-table">';
+    foreach ($categories as $cid => $label) {
+        echo '<div class="ratings-row">';
+        echo '<label>' . esc_html($label) . ':</label> ';
+        for ($i = 1; $i <= 5; $i++) {
+            echo '<i class="fa-regular fa-star" id="' . $cid . '_' . $i . '" title="' . $i . '" onclick="return rateIt(this, ' . $cid . ')" onmouseover="return rating(this, ' . $cid . ')" onmouseout="return rolloff(this, ' . $cid . ')"></i>';
         }
-        echo '<input type="hidden" id="' . $index . '_rating" name="' . $index . '_rating" value="0"></td></tr>';
+        echo '<input type="hidden" id="' . $cid . '_rating" name="rating_' . $cid . '" value="0">';
+        echo '</div>';
     }
-    echo '</tbody></table>';
+    echo '</div>';
 }
 
 // save comment ratings as comment meta
