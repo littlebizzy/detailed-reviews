@@ -27,9 +27,14 @@ add_filter( 'gu_override_dot_org', function( $overrides ) {
     return $overrides;
 }, 999 );
 
+// define categories constant if not already defined
+if ( ! defined('DETAILED_REVIEWS_CATEGORIES') ) {
+    define('DETAILED_REVIEWS_CATEGORIES', []);
+}
+
 // inject review input table into comment form
 function ratings_input_table() {
-    $categories = get_option('rs_categories');
+    $categories = DETAILED_REVIEWS_CATEGORIES;
     if (!is_array($categories)) return;
     echo '<div class="ratings-input-table">';
     foreach ($categories as $cid => $label) {
@@ -42,12 +47,12 @@ function ratings_input_table() {
         echo '</div>';
     }
     echo '</div>';
-    echo '<script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll(".ratings-row").forEach(function(row){let stars=row.querySelectorAll(".fa-star");stars.forEach(function(star,index){star.addEventListener("click",function(){let rating=index+1;stars.forEach(function(s,i){s.className=i<rating?"fa-solid fa-star":"fa-regular fa-star"});row.querySelector("input").value=rating})})})});</script>';
+    echo '<script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll(".ratings-row").forEach(function(row){let stars=row.querySelectorAll(".fa-star");stars.forEach(function(star,index){star.addEventListener("click",function(){let rating=index+1;stars.forEach(function(s,i){s.className=i<rating?\"fa-solid fa-star\":\"fa-regular fa-star\"});row.querySelector(\"input\").value=rating})})})});</script>';
 }
 
 // save comment ratings as comment meta
 add_action('comment_post', function($comment_id) {
-    $categories = get_option('rs_categories');
+    $categories = DETAILED_REVIEWS_CATEGORIES;
     if (!is_array($categories)) return;
     foreach ($categories as $cid => $label) {
         if (isset($_POST['rating_' . $cid])) {
@@ -65,7 +70,7 @@ add_filter('preprocess_comment', function($commentdata) {
     if (!$post_id) return $commentdata;
     $enabled = get_post_meta($post_id, '_rs_categories', true);
     if (!$enabled) return $commentdata;
-    $categories = get_option('rs_categories');
+    $categories = DETAILED_REVIEWS_CATEGORIES;
     if (!is_array($categories)) return $commentdata;
     foreach ($categories as $cid => $label) {
         if (in_array($cid, $enabled) && empty($_POST['rating_' . $cid])) {
@@ -80,7 +85,7 @@ function get_average_rating($post_id = null) {
     global $wpdb;
     $post_id = $post_id ?: get_the_ID();
     $comments = get_comments(['post_id' => $post_id, 'status' => 'approve']);
-    $categories = get_option('rs_categories');
+    $categories = DETAILED_REVIEWS_CATEGORIES;
     if (!$comments || !$categories) return 0;
     $sum = 0;
     $count = 0;
@@ -99,7 +104,7 @@ function get_average_rating($post_id = null) {
 // get average rating of a single comment
 function get_average_comment_rating($comment_id = null) {
     $comment_id = $comment_id ?: get_comment_ID();
-    $categories = get_option('rs_categories');
+    $categories = DETAILED_REVIEWS_CATEGORIES;
     if (!$categories) return 0;
     $sum = 0;
     $count = 0;
@@ -115,7 +120,7 @@ function get_average_comment_rating($comment_id = null) {
 
 // fallback ratings table function
 function ratings_table() {
-    $categories = get_option('rs_categories');
+    $categories = DETAILED_REVIEWS_CATEGORIES;
     $post_id = get_the_ID();
     if (!$categories) return;
     echo '<ul class="ratings-table">';
