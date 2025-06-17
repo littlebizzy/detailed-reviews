@@ -71,15 +71,11 @@ add_action('comment_post', function($comment_id) {
 
 // require ratings if post has _rs_categories
 add_filter('preprocess_comment', function($commentdata) {
-    $post_id = isset($commentdata['comment_post_ID']) ? (int) $commentdata['comment_post_ID'] : 0;
-    if (!$post_id) return $commentdata;
-    $enabled = get_post_meta($post_id, '_rs_categories', true);
-    if (!$enabled) return $commentdata;
     $categories = DETAILED_REVIEWS_CATEGORIES;
     if (!is_array($categories)) return $commentdata;
     foreach ($categories as $cid => $label) {
-        if (in_array($cid, $enabled) && empty($_POST[$cid . '_rating'])) {
-            wp_die('error: you must rate all review categories.');
+        if (empty($_POST['rating_' . $cid])) {
+            wp_die('error: all review categories must be rated.');
         }
     }
     return $commentdata;
