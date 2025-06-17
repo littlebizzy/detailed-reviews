@@ -32,22 +32,27 @@ if ( ! defined('DETAILED_REVIEWS_CATEGORIES') ) {
     define('DETAILED_REVIEWS_CATEGORIES', []);
 }
 
-// inject review input table into comment form
+// enqueue javascript
+add_action('wp_enqueue_scripts', function() {
+    wp_enqueue_script('detailed-reviews-js', plugin_dir_url(__FILE__) . 'detailed-reviews.js', [], null, true);
+});
+
+// inject legacy style review input table into comment form
 function ratings_input_table() {
-    $categories = DETAILED_REVIEWS_CATEGORIES;
-    if (!is_array($categories)) return;
-    echo '<div class="ratings-input-table">';
-    foreach ($categories as $cid => $label) {
-        echo '<div class="ratings-row" data-cat-id="' . esc_attr($cid) . '">';
-        echo '<label>' . esc_html($label) . ':</label> ';
-        for ($i = 1; $i <= 5; $i++) {
-            echo '<i class="fa-regular fa-star" data-rating="' . $i . '"></i>';
-        }
-        echo '<input type="hidden" name="rating_' . esc_attr($cid) . '" value="0">';
-        echo '</div>';
+    if ( ! defined('DETAILED_REVIEWS_CATEGORIES') || empty(DETAILED_REVIEWS_CATEGORIES) ) {
+        return;
     }
-    echo '</div>';
-    echo '<script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll(".ratings-row").forEach(function(row){let stars=row.querySelectorAll(".fa-star");stars.forEach(function(star,index){star.addEventListener("click",function(){let rating=index+1;stars.forEach(function(s,i){s.className=i<rating?\"fa-solid fa-star\":\"fa-regular fa-star\"});row.querySelector(\"input\").value=rating})})})});</script>';
+
+    echo '<table class="ratings"><tbody>';
+    foreach (DETAILED_REVIEWS_CATEGORIES as $index => $label) {
+        echo '<tr><td class="rating_label">' . esc_html($label) . '</td><td class="rating_value">';
+        for ( $i = 1; $i <= 5; $i++ ) {
+            $id = $index . '_' . $i;
+            echo '<a onclick="return rateIt(this,' . $index . ')" id="' . $id . '" title="' . $i . '" onmouseover="return rating(this,' . $index . ')" onmouseout="return rolloff(this,' . $index . ')"></a>';
+        }
+        echo '<input type="hidden" id="' . $index . '_rating" name="' . $index . '_rating" value="0"></td></tr>';
+    }
+    echo '</tbody></table>';
 }
 
 // save comment ratings as comment meta
@@ -55,8 +60,8 @@ add_action('comment_post', function($comment_id) {
     $categories = DETAILED_REVIEWS_CATEGORIES;
     if (!is_array($categories)) return;
     foreach ($categories as $cid => $label) {
-        if (isset($_POST['rating_' . $cid])) {
-            $val = intval($_POST['rating_' . $cid]);
+        if (isset($_POST[$cid . '_rating'])) {
+            $val = intval($_POST[$cid . '_rating']);
             if ($val >= 1 && $val <= 5) {
                 add_comment_meta($comment_id, 'rs_ratings[' . $cid . ']', $val);
             }
@@ -73,8 +78,8 @@ add_filter('preprocess_comment', function($commentdata) {
     $categories = DETAILED_REVIEWS_CATEGORIES;
     if (!is_array($categories)) return $commentdata;
     foreach ($categories as $cid => $label) {
-        if (in_array($cid, $enabled) && empty($_POST['rating_' . $cid])) {
-            wp_die('Error: You must rate all review categories.');
+        if (in_array($cid, $enabled) && empty($_POST[$cid . '_rating'])) {
+            wp_die('error: you must rate all review categories.');
         }
     }
     return $commentdata;
@@ -82,7 +87,6 @@ add_filter('preprocess_comment', function($commentdata) {
 
 // get average per-post rating
 function get_average_rating($post_id = null) {
-    global $wpdb;
     $post_id = $post_id ?: get_the_ID();
     $comments = get_comments(['post_id' => $post_id, 'status' => 'approve']);
     $categories = DETAILED_REVIEWS_CATEGORIES;
@@ -118,12 +122,12 @@ function get_average_comment_rating($comment_id = null) {
     return ($count > 0) ? round($sum / $count, 2) : 0;
 }
 
-// fallback ratings table function
+// legacy-style frontend ratings table
 function ratings_table() {
     $categories = DETAILED_REVIEWS_CATEGORIES;
     $post_id = get_the_ID();
     if (!$categories) return;
-    echo '<ul class="ratings-table">';
+    echo '<div id="ratings">';
     foreach ($categories as $cid => $label) {
         $total = 0;
         $count = 0;
@@ -136,9 +140,50 @@ function ratings_table() {
             }
         }
         $avg = ($count > 0) ? round($total / $count, 2) : 0;
-        echo '<li>' . esc_html($label) . ': ' . $avg . ' / 5</li>';
+        echo '<div class="rating_label">' . esc_html($label) . '</div><div class="rating_value">';
+        for ( $i = 1; $i <= 5; $i++ ) {
+            if ( $avg >= $i ) {
+                echo '<span class="star-full" alt="' . esc_attr($avg) . '"></span>';
+            } elseif ( $avg >= ( $i - 0.5 ) ) {
+                echo '<span class="star-half" alt="' . esc_attr($avg) . '"></span>';
+            } else {
+                echo '<span class="star-none" alt="' . esc_attr($avg) . '"></span>';
+            }
+        }
+        echo '</div>';
     }
-    echo '</ul>';
+    echo '<div class="clear-zero"></div></div>';
+}
+
+// render schema.org aggregate rating block
+function aggregate_rating_block($post_id = null) {
+    $post_id = $post_id ?: get_the_ID();
+    $comments = get_approved_comments($post_id);
+    $total_rating = 0;
+    $rating_count = 0;
+    foreach ($comments as $comment) {
+        $sum = 0;
+        $filled = 0;
+        foreach (array_keys(DETAILED_REVIEWS_CATEGORIES) as $cid) {
+            $val = get_comment_meta($comment->comment_ID, 'rs_ratings[' . $cid . ']', true);
+            if ($val > 0) {
+                $sum += $val;
+                $filled++;
+            }
+        }
+        if ($filled > 0) {
+            $total_rating += round($sum / $filled, 2);
+            $rating_count++;
+        }
+    }
+    $average = $rating_count ? round($total_rating / $rating_count, 2) : 0;
+    echo '<span itemprop="aggregateRating" itemscope itemtype="http://schema.org/AggregateRating">';
+    echo '<span class="starrr" data-rating="' . esc_attr($average) . '"></span>&nbsp;&nbsp;';
+    echo '(<span itemprop="ratingValue">' . esc_html(number_format($average, 2)) . '</span>/5.00)';
+    echo '<meta itemprop="reviewCount" content="' . esc_attr($rating_count) . '">';
+    echo '<meta itemprop="worstRating" content="1">';
+    echo '<meta itemprop="bestRating" content="5">';
+    echo '</span>';
 }
 
 // sort posts by average rating
