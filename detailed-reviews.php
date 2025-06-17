@@ -27,11 +27,6 @@ add_filter( 'gu_override_dot_org', function( $overrides ) {
     return $overrides;
 }, 999 );
 
-// define categories constant if not already defined
-if ( ! defined('DETAILED_REVIEWS_CATEGORIES') ) {
-    define('DETAILED_REVIEWS_CATEGORIES', []);
-}
-
 // enqueue javascript
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_script('detailed-reviews-js', plugin_dir_url(__FILE__) . 'detailed-reviews.js', [], null, true);
