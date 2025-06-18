@@ -90,134 +90,91 @@ function get_average_rating($custom_id = null) {
 	return ($count > 0) ? $sum / $count : 0;
 }
 		
-	/*
-	 * Outputs an unordered list with average ratings for a specified post. If used within 
-	 * The Loop with no arguments, it will display the ratings for the post being displayed. 
-	 * The post ID can be overridden with the $custom_id parameter. The output format will be:
-	 * 
-	 * <ul class="ratings">
-	 *  <li><label class="rating_label">Category 1</label> <span class="rating_value"><img src="star.png">...</span></li>
-	 *  <li><label class="rating_label">Category 2</label> <span class="rating_value"><img src="star.png">...</span></li>
-	 *  <li><label class="rating_label">Category 3</label> <span class="rating_value"><img src="star.png">...</span></li>
-	 * </ul>
-	 * 
-	 */
+// output unordered list of average ratings for a post
+function ratings_list($custom_id = null, $return = false) {
+	global $wpdb;
+	$pid = get_the_ID();
+	if (is_numeric($custom_id))
+		$pid = $custom_id;
 
-	function ratings_list($custom_id = null, $return = false) {
-		global $id, $wpdb;
-		$pid = $id;
-		if (is_numeric($custom_id))
-			$pid = $custom_id;
-					
-		$ratings = get_ratings($pid);
-		if (count($ratings) == 0) return;
-			
-		$html = '<ul class="ratings">';
-		foreach ($ratings as $cat => $rating) {
-			$html .= '<li>';
-			$html .= '<label class="rating_label">' . $cat . '</label> ';
-			$html .= '<span class="rating_value">';
-			
-			if ($rating > 0)
-				$html .= num_to_stars($rating);
-			else
-				$html .= 'No Ratings';
-			
-			$html .= '</span></li>';
-		}
-		$html .= "</ul>";
-		
-		if ($return)
-			return $html;
-		echo $html;
-		
+	$ratings = get_ratings($pid);
+	if (count($ratings) == 0) return;
+
+	$html = '<ul class="ratings">';
+	foreach ($ratings as $cat => $rating) {
+		$html .= '<li>';
+		$html .= '<label class="rating_label">' . $cat . '</label> ';
+		$html .= '<span class="rating_value">';
+		$html .= ($rating > 0) ? num_to_stars($rating) : 'No Ratings';
+		$html .= '</span></li>';
 	}
-		
-	/*
-	 * Outputs a table with average ratings for a specified post. If used within 
-	 * The Loop with no arguments, it will display the ratings for the post being displayed. 
-	 * The post ID can be overridden with the $custom_id parameter. The output format will be:
-	 * 
-	 * <table class="ratings">
-	 *  <tr><td class="rating_label">Category 1</td><td class="rating_value"><img src="star.png">...</td></tr>
-	 *  <tr><td class="rating_label">Category 2</td><td class="rating_value"><img src="star.png">...</td></tr>
-	 *  <tr><td class="rating_label">Category 3</td><td class="rating_value"><img src="star.png">...</td></tr>
-	 * </table>
-	 * 
-	 */
-	function ratings_table($custom_id = null, $return = false) {
-		global $id, $wpdb;
-		$pid = $id;
-		if (is_numeric($custom_id))
-			$pid = $custom_id;
-		
-		$ratings = get_ratings($pid);
-		if (count($ratings) == 0) return;
-			
-		$html = '<div id="ratings">';
-		foreach ($ratings as $cat => $rating) {
-			
-			$html .= '<div class="rating_label">' . $cat . '</div>';
-			$html .= '<div class="rating_value">';						if ($cat == "OVERALL QUALITY") {				$html .= "";			}
-			
-			if ($rating > 0)
-				$html .= num_to_stars($rating);
-			else
-				$html .= num_to_stars($rating);
-			
-			$html .= '</div>';
-		}
-		$html .= '<div class="clear-zero"></div></div>';
+	$html .= '</ul>';
 
-		if ($return)
-			return $html;
-		echo $html;
+	if ($return)
+		return $html;
+	echo $html;
+}
+		
+// output div-based table of average ratings for a post
+function ratings_table($custom_id = null, $return = false) {
+	global $wpdb;
+	$pid = get_the_ID();
+	if (is_numeric($custom_id))
+		$pid = $custom_id;
 
+	$ratings = get_ratings($pid);
+	if (count($ratings) == 0) return;
+
+	$html = '<div id="ratings">';
+	foreach ($ratings as $cat => $rating) {
+		$html .= '<div class="rating_label">' . $cat . '</div>';
+		$html .= '<div class="rating_value">';
+		$html .= num_to_stars($rating);
+		$html .= '</div>';
 	}
+	$html .= '<div class="clear-zero"></div></div>';
+
+	if ($return)
+		return $html;
+	echo $html;
+}
 	
-	/*
-	 * Returns a keyed array of ratings for a specified comment. The format of the array:
-	 * array( [Category 1] => 2.5, [Category 2] => 3.2, [Category 3] => 4.5 )
-	 *
-	 * Use num_to_stars to convert numeric values to star images.
-	 */
-	function get_comment_ratings($custom_id = null) {
-		global $wpdb, $comment;
-		$pid = $comment->comment_ID;
-		if (is_numeric($custom_id))
-			$pid = $custom_id;
-					
-		$categories = get_option('rs_categories');
-		
-		$query = "SELECT rating_id, rating_value AS `rating_value`, {$wpdb->comments}.comment_post_ID AS `comment_post_ID`
-				  FROM {$wpdb->ratings} 
-				  INNER JOIN {$wpdb->comments} 
-				  	ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id 
-				  WHERE {$wpdb->comments}.comment_ID = $pid 
-				  ORDER BY rating_id";
-				  	
-		$result = $wpdb->get_results($query);
-		
-		if (count($result) == 0) return array();
-		
-		$pid = $result[0]->comment_post_ID;
+// return ratings for a specific comment by category
+function get_comment_ratings($custom_id = null) {
+	global $wpdb, $comment;
+	$cid = $comment->comment_ID;
+	if (is_numeric($custom_id))
+		$cid = $custom_id;
 
-		$show = get_post_meta($pid, '_rs_categories', true);
+	$categories = get_option('rs_categories');
 
-		$ratings = array();
-		foreach ($categories as $cid => $cat) {
-			if (!empty($show) && in_array($cid, $show))		
-				$ratings[$cat] = 0;
-		}
-				
-		if (count($result) > 0) {
-			foreach ($result as $rating) {
-				if (!empty($show) && in_array($rating->rating_id, $show))
-					$ratings[$categories[$rating->rating_id]] = $rating->rating_value;
-			}
-		}
-		return $ratings;
+	$query = "SELECT rating_id, rating_value AS rating_value, {$wpdb->comments}.comment_post_ID AS comment_post_ID
+			  FROM {$wpdb->ratings}
+			  INNER JOIN {$wpdb->comments}
+			  	ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id
+			  WHERE {$wpdb->comments}.comment_ID = $cid
+			  ORDER BY rating_id";
+
+	$result = $wpdb->get_results($query);
+	if (count($result) == 0) return array();
+
+	$pid = $result[0]->comment_post_ID;
+	$show = get_post_meta($pid, '_rs_categories', true);
+
+	$ratings = array();
+	foreach ($categories as $cid => $cat) {
+		if (!empty($show) && in_array($cid, $show))
+			$ratings[$cat] = 0;
 	}
+
+	foreach ($result as $rating) {
+		if (!empty($show) && in_array($rating->rating_id, $show))
+			$ratings[$categories[$rating->rating_id]] = $rating->rating_value;
+	}
+
+	return $ratings;
+}
+
 	
 	/*
 	 * Returns the average of the ratings associated with a single review
