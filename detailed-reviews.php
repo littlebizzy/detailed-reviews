@@ -285,7 +285,8 @@ function ratings_input_table($return = false) {
 			$html .= '<td class="rating_label">' . $cat . '</td>';
 			$html .= '<td class="rating_value">';
 			for ($i = 1; $i <= 5; $i++) {
-				$html .= '<a onclick="rateIt(this, ' . $cid . ')" id="' . $cid . '_' . $i . '" title="' . $i . '" onmouseover="rating(this, ' . $cid . ')" onmouseout="rolloff(this, ' . $cid . ')"></a>';
+				$html .= '<a onclick="rateIt(this, ' . $cid . ')" id="' . $cid . '_' . $i . '" title="' . $i . '" onmouseover="rating(this, ' . $cid . ')" onmouseout="rolloff(this, ' . $cid . ')">'
+				       . '<i class="fa-regular fa-star"></i></a>';
 			}
 			$html .= '<input type="hidden" id="' . $cid . '_rating" name="' . $cid . '_rating" value="0" />';
 			$html .= '</td></tr>';
@@ -297,6 +298,7 @@ function ratings_input_table($return = false) {
 		return $html;
 	echo $html;
 }
+
 
 // output number of unique positive reviews for a post
 function positive_reviews($custom_id = null) {
