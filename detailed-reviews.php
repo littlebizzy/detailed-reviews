@@ -286,7 +286,7 @@ function ratings_input_table($return = false) {
 			$html .= '<td class="rating_value">';
 			for ($i = 1; $i <= 5; $i++) {
 				$html .= '<a onclick="rateIt(this, ' . $cid . ')" id="' . $cid . '_' . $i . '" title="' . $i . '" onmouseover="rating(this, ' . $cid . ')" onmouseout="rolloff(this, ' . $cid . ')">'
-				       . '<i class="fa-regular fa-star"></i></a>';
+				       . '<i class="fa-solid fa-star"></i></a>';
 			}
 			$html .= '<input type="hidden" id="' . $cid . '_rating" name="' . $cid . '_rating" value="0" />';
 			$html .= '</td></tr>';
@@ -298,7 +298,6 @@ function ratings_input_table($return = false) {
 		return $html;
 	echo $html;
 }
-
 
 // output number of unique positive reviews for a post
 function positive_reviews($custom_id = null) {
@@ -570,14 +569,12 @@ add_action('wp_head', function() {
 			cursor: pointer;
 			margin-left: 4px;
 			vertical-align: middle;
-			color: #c49b0f;
-			opacity: 0.6;
-			font-family: "Font Awesome 6 Free";
-			font-weight: 400;
+			color: #ddd;
+			transition: color 0.05s linear;
 		}
+		table.ratings .rating_value a.on i,
 		table.ratings .rating_value a.hovered i {
-			font-weight: 900;
-			opacity: 1;
+			color: #f0c040 !important;
 		}
 	</style>
 	<?php
