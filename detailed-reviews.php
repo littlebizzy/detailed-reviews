@@ -26,39 +26,12 @@ add_filter( 'gu_override_dot_org', function( $overrides ) {
     $overrides[] = 'detailed-reviews/detailed-reviews.php';
     return $overrides;
 }, 999 );
-		
-<?php
-	/*
-	Plugin Name: WP Review Site
-	Plugin URI: http://www.wpreviewsite.com
-	Description: Allows you to build a review site with WordPress with Amazon-style user reviews.
-	Author: Dan Grossman
-	Author URI: http://www.dangrossman.info
-	Version: 3.02
-	*/ 
 	
-	/* 
-	THIS IS COMMERCIAL SOFTWARE. You must own a license to use this plugin. You should not call 
-	any functions in this file. User-callable functions are in review-site-api.php
-	*/
 		
 	/** Set Up Constants **/
 	global $wpdb;
 	$wpdb->ratings = $wpdb->prefix . 'rs_ratings';
 	$wpdb->visitlinks = $wpdb->prefix . 'rs_visit_links';
-	
-	if (!defined('WP_CONTENT_DIR')) {
-		define( 'WP_CONTENT_DIR', ABSPATH.'wp-content');
-	}
-	if (!defined('WP_CONTENT_URL')) {
-		define('WP_CONTENT_URL', get_option('siteurl').'/wp-content');
-	}
-	if (!defined('WP_PLUGIN_DIR')) {
-		define('WP_PLUGIN_DIR', WP_CONTENT_DIR.'/plugins');
-	}
-	if (!defined('WP_PLUGIN_URL')) {
-		define('WP_PLUGIN_URL', WP_CONTENT_URL.'/plugins');
-	}
 	
 	//Contains all user-callable functions
 	
