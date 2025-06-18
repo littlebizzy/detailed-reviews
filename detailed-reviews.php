@@ -537,6 +537,26 @@ function rs_weighted_orderby($content) {
 	return 'rs_weighted DESC, ' . $wpdb->posts . '.post_date DESC';
 }
 
+// render post ratings average and stars
+function detailed_reviews_render_stars( $rating, $max = 5 ) {
+	$full_stars = floor( $rating );
+	$half_star = ( $rating - $full_stars >= 0.25 && $rating - $full_stars < 0.75 );
+	$empty_stars = $max - $full_stars - ( $half_star ? 1 : 0 );
+
+	$html = '<span class="fa-stars">';
+	for ( $i = 0; $i < $full_stars; $i++ ) {
+		$html .= '<i class="fa-solid fa-star"></i>';
+	}
+	if ( $half_star ) {
+		$html .= '<i class="fa-solid fa-star-half-stroke"></i>';
+	}
+	for ( $i = 0; $i < $empty_stars; $i++ ) {
+		$html .= '<i class="fa-regular fa-star"></i>';
+	}
+	$html .= '</span>';
+	return $html;
+}
+
 // output inline css for rating input styling
 add_action('wp_head', function() {
 	?>
@@ -576,6 +596,15 @@ add_action('wp_head', function() {
 		table.ratings .rating_value a.hovered i {
 			color: #f0c040 !important;
 		}
+		.detailed-reviews-rating {
+			font-size: 20px;
+			vertical-align: middle;
+			color: #f0c040;
+		}
+		.detailed-reviews-rating i {
+			margin-right: 3px;
+		}
+
 	</style>
 	<?php
 });
