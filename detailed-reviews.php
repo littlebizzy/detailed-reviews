@@ -538,6 +538,51 @@ function rs_weighted_orderby($content) {
 	return 'rs_weighted DESC, ' . $wpdb->posts . '.post_date DESC';
 }
 
+// output inline css for rating input styling
+add_action('wp_head', function() {
+	?>
+	<style>
+		table.ratings {
+			width: 100%;
+			font-size: 18px;
+			border-collapse: collapse;
+			background-color: #fff !important;
+		}
+		table.ratings tr:nth-child(even) {
+			background-color: #f9f9f9 !important;
+		}
+		table.ratings tr:nth-child(odd) {
+			background-color: #ffffff !important;
+		}
+		table.ratings tr:hover {
+			background-color: #f1f1f1 !important;
+		}
+		table.ratings .rating_label {
+			font-weight: 600;
+			font-size: 18px;
+			padding: 10px !important;
+		}
+		table.ratings .rating_value {
+			padding: 10px !important;
+		}
+		table.ratings .rating_value i {
+			font-size: 22px;
+			cursor: pointer;
+			margin-left: 4px;
+			vertical-align: middle;
+			color: #c49b0f;
+			opacity: 0.6;
+			font-family: "Font Awesome 6 Free";
+			font-weight: 400;
+		}
+		table.ratings .rating_value a.hovered i {
+			font-weight: 900;
+			opacity: 1;
+		}
+	</style>
+	<?php
+});
+
 // Ref: ChatGPT
 // Ref: http://www.wpreviewsite.com
 // Ref: http://www.dangrossman.info
