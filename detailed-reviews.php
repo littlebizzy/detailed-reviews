@@ -2,7 +2,7 @@
 /*
 Plugin Name: Detailed Reviews
 Plugin URI: https://www.littlebizzy.com/plugins/detailed-reviews
-Description: Allows 5-star reviews with multiple categories per post. Compatible with legacy WP Review Site data.
+Description: Allows 5-star reviews with multiple categories, compatible with legacy WP Review Site data.
 Version: 1.0.0
 Author: LittleBizzy
 Author URI: https://www.littlebizzy.com
@@ -27,85 +27,68 @@ add_filter( 'gu_override_dot_org', function( $overrides ) {
     return $overrides;
 }, 999 );
 	
-		
-	/** Set Up Constants **/
-	global $wpdb;
-	$wpdb->ratings = $wpdb->prefix . 'rs_ratings';
-	$wpdb->visitlinks = $wpdb->prefix . 'rs_visit_links';
-	
-	//Contains all user-callable functions
-	
-	/* 
-	WP Review Site API : User-callable functions
-	*/
+// set up custom table aliases
+global $wpdb;
+$wpdb->ratings = $wpdb->prefix . 'rs_ratings';
+$wpdb->visitlinks = $wpdb->prefix . 'rs_visit_links';
 
-	/*
-	 * Returns a keyed array of average ratings for a specified post. If used within The Loop with 
-	 * no arguments, it will return the ratings for the post being displayed. The post ID can be 
-	 * overridden with the $custom_id parameter. The format of the array:
-	 * array( [Category 1] => 2.5, [Category 2] => 3.2, [Category 3] => 4.5 )
-	 *
-	 * Use num_to_stars to convert numeric values to star images.
-	 */
-	function get_ratings($custom_id = null) {
-		global $id, $wpdb;
-		$pid = $id;
-		if (is_numeric($custom_id))
-			$pid = $custom_id;
-		
-		$categories = get_option('rs_categories');
-		
-		$query = "SELECT rating_id, SUM(rating_value) / COUNT(rating_value) AS `rating_value` 
-				  FROM {$wpdb->ratings} 
-				  INNER JOIN {$wpdb->comments} 
-				  	ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id 
-				  WHERE {$wpdb->comments}.comment_post_ID = $pid 
-				  	AND {$wpdb->comments}.comment_approved = 1
-				  GROUP BY rating_id
-				  ORDER BY rating_id";
-				  	
-		$result = $wpdb->get_results($query);
-		
-		$show = get_post_meta($pid, '_rs_categories', true);
-		
-		$ratings = array();
-		foreach ($categories as $cid => $cat) {
-			if (!empty($show) && in_array($cid, $show))		
-				$ratings[$cat] = 0;
-		}
-				
-		if (count($result) > 0) {
-			foreach ($result as $rating) {
-				if (!empty($show) && in_array($rating->rating_id, $show))
-					$ratings[$categories[$rating->rating_id]] = $rating->rating_value;
-			}
-		}
-				
-		return $ratings;
+// return average ratings for each category of a post
+function get_ratings($custom_id = null) {
+	global $wpdb;
+	$pid = get_the_ID();
+	if (is_numeric($custom_id))
+		$pid = $custom_id;
+
+	$categories = get_option('rs_categories');
+
+	$query = "SELECT rating_id, SUM(rating_value) / COUNT(rating_value) AS rating_value
+			  FROM {$wpdb->ratings}
+			  INNER JOIN {$wpdb->comments}
+			  	ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id
+			  WHERE {$wpdb->comments}.comment_post_ID = $pid
+			  	AND {$wpdb->comments}.comment_approved = 1
+			  GROUP BY rating_id
+			  ORDER BY rating_id";
+
+	$result = $wpdb->get_results($query);
+	$show = get_post_meta($pid, '_rs_categories', true);
+
+	$ratings = array();
+	foreach ($categories as $cid => $cat) {
+		if (!empty($show) && in_array($cid, $show))
+			$ratings[$cat] = 0;
 	}
+
+	if (count($result) > 0) {
+		foreach ($result as $rating) {
+			if (!empty($show) && in_array($rating->rating_id, $show))
+				$ratings[$categories[$rating->rating_id]] = $rating->rating_value;
+		}
+	}
+
+	return $ratings;
+}
 	
-	/*
-	 * Returns the average rating for a post
-	 */
-	function get_average_rating($custom_id = null) {
-		global $id, $wpdb;
-		$pid = $id;
-		if (is_numeric($custom_id))
-			$pid = $custom_id;
-			
-		$ratings = get_ratings($pid);
-		
-		$sum = 0;
-		$count = 0;
-		foreach ($ratings as $rating) {
-			if ($rating > 0) {
-				$sum += $rating;
-				$count++;		
-			}
+// return average rating across all categories for a post
+function get_average_rating($custom_id = null) {
+	global $wpdb;
+	$pid = get_the_ID();
+	if (is_numeric($custom_id))
+		$pid = $custom_id;
+
+	$ratings = get_ratings($pid);
+
+	$sum = 0;
+	$count = 0;
+	foreach ($ratings as $rating) {
+		if ($rating > 0) {
+			$sum += $rating;
+			$count++;
 		}
-			
-		return ($count > 0) ? $sum / $count : 0;
 	}
+
+	return ($count > 0) ? $sum / $count : 0;
+}
 		
 	/*
 	 * Outputs an unordered list with average ratings for a specified post. If used within 
