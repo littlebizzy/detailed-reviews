@@ -1,36 +1,44 @@
-function rating(num, setnum) {
+function rating(el, setnum) {
+	var starIndex = parseInt(el.id.replace(setnum + "_", ''), 10);
+	var container = el.parentNode;
+	var stars = container.querySelectorAll('a');
 
-	var s = num.id.replace(setnum + "_", '');
-	
-	for (i = 1; i <= 5; i++ ){		
-		if (i <= s) {
-			document.getElementById(setnum + "_" + i).className = "on";
+	stars.forEach(function(star, index) {
+		if (index < starIndex) {
+			star.classList.add('hovered');
 		} else {
-			document.getElementById(setnum + "_" + i).className = "";
+			star.classList.remove('hovered');
 		}
-	}
-	
+	});
 }
 
-function rolloff(me, setnum) {
+function rolloff(el, setnum) {
+	var container = el.parentNode;
+	var stars = container.querySelectorAll('a');
+	var selected = parseInt(document.getElementById(setnum + "_rating").value, 10);
 
-	var current = document.getElementById(setnum + "_rating").value;
-	
-
-	for (i = 1; i <= 5; i++) {
-		if (i <= current) {
-			document.getElementById(setnum + "_" + i).className = "on";
+	stars.forEach(function(star, index) {
+		star.classList.remove('hovered');
+		if (index < selected) {
+			star.classList.add('selected');
 		} else {
-			document.getElementById(setnum + "_" + i).className = "";
+			star.classList.remove('selected');
 		}
-	}
-
+	});
 }
 
-function rateIt(me, setnum){
+function rateIt(el, setnum) {
+	var starIndex = parseInt(el.id.replace(setnum + "_", ''), 10);
+	document.getElementById(setnum + "_rating").value = starIndex;
 
-	var s = me.id.replace(setnum + "_", '');
-	document.getElementById(setnum + "_rating").value = s;	
-	rolloff(me, setnum);
+	var container = el.parentNode;
+	var stars = container.querySelectorAll('a');
 
+	stars.forEach(function(star, index) {
+		if (index < starIndex) {
+			star.classList.add('selected');
+		} else {
+			star.classList.remove('selected');
+		}
+	});
 }
