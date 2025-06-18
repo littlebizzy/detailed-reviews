@@ -119,23 +119,22 @@ function ratings_list($custom_id = null, $return = false) {
 function ratings_table($custom_id = null, $return = false) {
 	global $wpdb;
 	$pid = get_the_ID();
-	if (is_numeric($custom_id))
+	if (is_numeric($custom_id)) {
 		$pid = $custom_id;
+	}
 
 	$ratings = get_ratings($pid);
 	if (count($ratings) == 0) return;
 
 	$html = '<div id="ratings">';
 	foreach ($ratings as $cat => $rating) {
-		$html .= '<div class="rating_label">' . $cat . '</div>';
-		$html .= '<div class="rating_value">';
-		$html .= num_to_stars($rating);
-		$html .= '</div>';
+		$percent = round( (float) $rating / 5 * 100 );
+		$html .= '<div class="rating_label">' . esc_html($cat) . '</div>';
+		$html .= '<div class="rating_value"><div class="rating_fill" style="width: ' . $percent . '%"></div></div>';
 	}
-	$html .= '<div class="clear-zero"></div></div>';
+	$html .= '</div>';
 
-	if ($return)
-		return $html;
+	if ($return) return $html;
 	echo $html;
 }
 	
@@ -604,7 +603,34 @@ add_action('wp_head', function() {
 		.detailed-reviews-rating i {
 			margin-right: 3px;
 		}
-
+		#ratings {
+			margin-top: 15px;
+			background: #fefefe;
+			border: 1px solid #e0e0e0;
+			border-radius: 6px;
+			padding: 20px;
+			font-size: 16px;
+			width: 100%;
+		}
+		#ratings .rating_label {
+			margin-bottom: 5px;
+			font-weight: 600;
+			color: #333;
+		}
+		#ratings .rating_value {
+			margin-bottom: 15px;
+			width: 100%;
+			background: #eee;
+			border-radius: 4px;
+			height: 16px;
+			position: relative;
+			overflow: hidden;
+		}
+		#ratings .rating_fill {
+			background: #f0c040;
+			height: 100%;
+			border-radius: 4px;
+		}
 	</style>
 	<?php
 });
