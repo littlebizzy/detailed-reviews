@@ -370,34 +370,41 @@ function num_to_stars($num) {
 // initialize review settings and filters
 add_action('init', 'rs_init');
 
+// initialize review settings and filters
 function rs_init() {
-	wp_register_script('rs_js', plugins_url('detailed-reviews.js', __FILE__));
-	wp_enqueue_script('rs_js');
+	wp_register_script( 'rs_js', plugins_url( 'detailed-reviews.js', __FILE__ ) );
+	wp_enqueue_script( 'rs_js' );
 
-	if (is_admin()) {
-		add_action('save_post', 'wprs_box_hook', 5, 2);
+	if ( is_admin() ) {
+		add_action( 'save_post', 'wprs_box_hook', 5, 2 );
 	}
 
 	// always embed schema-wrapped comment text
-	add_filter('get_comment_text', 'rs_comment_text');
+	add_filter( 'get_comment_text', 'rs_comment_text' );
 
-	// when comment is posted
-	add_action('comment_post', 'rs_comment_posted');
+	// save comment ratings when comment is posted
+	add_action( 'comment_post', 'rs_comment_posted' );
 
-	// require ratings on comments if enabled
-	$rs_require_rating = get_option('rs_require_rating');
-	if ($rs_require_rating)
-		add_filter('preprocess_comment', 'rs_preprocess');
+	// always enforce category ratings on comments
+	add_filter( 'preprocess_comment', 'rs_preprocess' );
 
-	// post sorting by rating or comment count
-	$sort = get_option('rs_sort');
-	if ($sort == 'rating' || (isset($_GET['v_orderby']) && $_GET['v_orderby'] == 'rating')) {
-		add_filter('posts_fields', 'rs_weighted_fields');
-		add_filter('posts_join', 'rs_weighted_join');
-		add_filter('posts_groupby', 'rs_weighted_groupby');
-		add_filter('posts_orderby', 'rs_weighted_orderby');
-	} else if ($sort == 'comments' || (isset($_GET['v_orderby']) && $_GET['v_orderby'] == 'comments')) {
-		add_filter('posts_orderby', 'rs_comments_orderby');
+	// post sorting logic
+	if (
+		isset( $_GET['v_orderby'] ) &&
+		in_array( $_GET['v_orderby'], array( 'rating', 'comments' ), true )
+	) {
+		$orderby = $_GET['v_orderby'];
+
+		if ( $orderby === 'rating' ) {
+			add_filter( 'posts_fields',   'rs_weighted_fields' );
+			add_filter( 'posts_join',     'rs_weighted_join' );
+			add_filter( 'posts_groupby',  'rs_weighted_groupby' );
+			add_filter( 'posts_orderby',  'rs_weighted_orderby' );
+		}
+
+		if ( $orderby === 'comments' ) {
+			add_filter( 'posts_orderby', 'rs_comments_orderby' );
+		}
 	}
 }
 
@@ -451,19 +458,29 @@ function rs_comment_text($content) {
 
 // validate ratings before saving a comment
 function rs_preprocess($incoming_comment) {
-	if ($incoming_comment['comment_type'] != 'pingback' && $incoming_comment['comment_type'] != 'trackback') {
-		$pid = $incoming_comment['comment_post_ID'];
-		$show = get_post_meta($pid, '_rs_categories', true);
+	if ($incoming_comment['comment_type'] === 'pingback' || $incoming_comment['comment_type'] === 'trackback') {
+		return $incoming_comment;
+	}
 
-		if (empty($show)) return $incoming_comment;
+	$pid = $incoming_comment['comment_post_ID'];
+	$active_categories = get_post_meta($pid, '_rs_categories', true);
 
-		foreach ($show as $cid) {
-			if (!isset($_POST[$cid . '_rating']) || $_POST[$cid . '_rating'] == 0) {
-				wp_die(
-					'You must leave a rating with your comment. Go back and click on the stars to rate from 1 to 5. Your text appears below so that you can copy it into the form again:<br /><br />' . $incoming_comment['comment_content'],
-					'Rating is Required'
-				);
-			}
+	if (empty($active_categories)) {
+		return $incoming_comment;
+	}
+
+	foreach ($active_categories as $category_id) {
+		$key = $category_id . '_rating';
+		if (
+			! isset($_POST[$key]) ||
+			! is_numeric($_POST[$key]) ||
+			(int) $_POST[$key] < 1 ||
+			(int) $_POST[$key] > 5
+		) {
+			wp_die(
+				'you must rate all required categories from 1 to 5 before submitting your review. your comment text appears below so you can copy and resubmit it:<br><br>' . esc_html($incoming_comment['comment_content']),
+				'rating required'
+			);
 		}
 	}
 
