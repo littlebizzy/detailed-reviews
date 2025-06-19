@@ -435,11 +435,13 @@ function rs_comment_text($content) {
 
 		<div itemprop="description"><?php echo $content; ?></div>
 
-		<div itemprop="reviewRating" itemscope itemtype="http://schema.org/Rating">
-			<small>Overall Score: (<span itemprop="ratingValue"><?php echo $rating_value; ?></span>/5.00)</small>
-			<meta itemprop="worstRating" content="1" />
-			<meta itemprop="bestRating" content="5" />
-		</div>
+        <?php if ( $rating_value > 0 ) : ?>
+                <div itemprop="reviewRating" itemscope itemtype="http://schema.org/Rating">
+                        <small>Overall Score: (<span itemprop="ratingValue"><?php echo $rating_value; ?></span>/5.00)</small>
+                        <meta itemprop="worstRating" content="1" />
+                        <meta itemprop="bestRating" content="5" />
+                </div>
+        <?php endif; ?>
 
 	</div>
 	<?php
