@@ -271,32 +271,27 @@ function ratings_input_list($return = false) {
 }
 
 // output input table of star ratings inside the comment form
-function ratings_input_table($return = false) {
-	$pid = get_the_ID();
-	$categories = get_option('rs_categories');
-	$show = get_post_meta($pid, '_rs_categories', true);
-	if (empty($show)) return;
-
-	$html = '<table class="ratings">';
-	foreach ($categories as $cid => $cat) {
-		if (in_array($cid, $show)) {
-			$html .= '<tr>';
-			$html .= '<td class="rating_label">' . $cat . '</td>';
-			$html .= '<td class="rating_value">';
-			for ($i = 1; $i <= 5; $i++) {
-				$html .= '<a onclick="rateIt(this, ' . $cid . ')" id="' . $cid . '_' . $i . '" title="' . $i . '" onmouseover="rating(this, ' . $cid . ')" onmouseout="rolloff(this, ' . $cid . ')">'
-				       . '<i class="fa-solid fa-star"></i></a>';
-			}
-			$html .= '<input type="hidden" id="' . $cid . '_rating" name="' . $cid . '_rating" value="0" />';
-			$html .= '</td></tr>';
-		}
+function ratings_input_table() {
+	if ( ! defined( 'DETAILED_REVIEWS_CATEGORIES' ) || ! is_array( DETAILED_REVIEWS_CATEGORIES ) ) {
+		return;
 	}
-	$html .= '</table>';
 
-	if ($return)
-		return $html;
-	echo $html;
+	echo '<div id="ratings">';
+
+	foreach ( DETAILED_REVIEWS_CATEGORIES as $id => $label ) {
+		echo '<div class="rating_row">';
+		echo '<div class="rating_label">' . esc_html( $label ) . '</div>';
+		echo '<div class="rating_value">';
+		for ( $i = 1; $i <= 5; $i++ ) {
+			echo '<a href="javascript:void(0);" id="' . esc_attr( $id . '_' . $i ) . '" onclick="rateIt(this,' . esc_attr( $id ) . ')" onmouseover="rating(this,' . esc_attr( $id ) . ')" onmouseout="rolloff(this,' . esc_attr( $id ) . ')"><i class="fa fa-star"></i></a>';
+		}
+		echo '<input type="hidden" name="' . esc_attr( $id . '_rating' ) . '" id="' . esc_attr( $id . '_rating' ) . '" value="0" />';
+		echo '</div></div>';
+	}
+
+	echo '</div>';
 }
+
 
 // output number of unique positive reviews for a post
 function positive_reviews($custom_id = null) {
@@ -458,6 +453,13 @@ function rs_comment_text($content) {
 
 // validate ratings before saving a comment
 function rs_preprocess($incoming_comment) {
+	// temp
+	error_log(print_r($_POST, true));
+	error_log( print_r( $active_categories, true ) );
+
+
+	
+
 	if ($incoming_comment['comment_type'] === 'pingback' || $incoming_comment['comment_type'] === 'trackback') {
 		return $incoming_comment;
 	}
@@ -478,7 +480,9 @@ function rs_preprocess($incoming_comment) {
 			(int) $_POST[$key] > 5
 		) {
 			wp_die(
-				'you must rate all required categories from 1 to 5 before submitting your review. your comment text appears below so you can copy and resubmit it:<br><br>' . esc_html($incoming_comment['comment_content']),
+				'you must rate all required categories from 1 to 5 before submitting your review. your comment text appears below so you can copy and resubmit it:<br><br>'
+				. esc_html($incoming_comment['comment_content'])
+				. '<br><br><a href="' . esc_url(get_permalink($pid)) . '#respond">← go back to review form</a>',
 				'rating required'
 			);
 		}
