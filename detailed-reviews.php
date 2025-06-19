@@ -376,11 +376,10 @@ function rs_init() {
 
 	if (is_admin()) {
 		add_action('save_post', 'wprs_box_hook', 5, 2);
-
-		$rs_comment_embed = get_option('rs_comment_embed');
-		if (empty($rs_comment_embed))
-			add_filter('get_comment_text', 'rs_comment_text');
 	}
+
+	// always embed schema-wrapped comment text
+	add_filter('get_comment_text', 'rs_comment_text');
 
 	// when comment is posted
 	add_action('comment_post', 'rs_comment_posted');
@@ -402,14 +401,48 @@ function rs_init() {
 	}
 }
 
+
 // append comment rating table after comment text
 function rs_comment_text($content) {
-	ob_start();
-	comment_ratings_table();
-	$table = ob_get_clean();
+	global $comment;
 
-	return $content . '<br />' . $table;
+	$comment_id = $comment->comment_ID;
+	$comment_post_id = $comment->comment_post_ID;
+	$categories = get_post_meta($comment_post_id, '_rs_categories', true);
+	if (empty($categories)) return $content;
+
+	$post_title = get_the_title($comment_post_id);
+	$date = esc_attr(get_comment_date('Y-m-d', $comment_id));
+	$author_name = esc_html(get_comment_author($comment_id));
+	$rating_value = substr(get_average_comment_rating($comment_id), 0, 4);
+
+	ob_start();
+	?>
+	<div itemprop="review" itemscope itemtype="http://schema.org/Review">
+
+		<span itemprop="itemReviewed" itemscope itemtype="http://schema.org/Thing">
+			<meta itemprop="name" content="<?php echo $post_title; ?>">
+		</span>
+
+		<div itemprop="author" itemscope itemtype="http://schema.org/Person">
+			<meta itemprop="name" content="<?php echo $author_name; ?>">
+		</div>
+
+		<meta itemprop="datePublished" content="<?php echo $date; ?>">
+
+		<div itemprop="description"><?php echo $content; ?></div>
+
+		<div itemprop="reviewRating" itemscope itemtype="http://schema.org/Rating">
+			<small>Overall Score: (<span itemprop="ratingValue"><?php echo $rating_value; ?></span>/5.00)</small>
+			<meta itemprop="worstRating" content="1" />
+			<meta itemprop="bestRating" content="5" />
+		</div>
+
+	</div>
+	<?php
+	return ob_get_clean();
 }
+
 
 // validate ratings before saving a comment
 function rs_preprocess($incoming_comment) {
