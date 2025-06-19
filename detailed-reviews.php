@@ -270,27 +270,27 @@ function ratings_input_list($return = false) {
 	echo $html;
 }
 
-// output input table of star ratings inside the comment form
 function ratings_input_table() {
 	if ( ! defined( 'DETAILED_REVIEWS_CATEGORIES' ) || ! is_array( DETAILED_REVIEWS_CATEGORIES ) ) {
 		return;
 	}
 
-	echo '<div id="ratings">';
+	echo '<table class="ratings">';
 
 	foreach ( DETAILED_REVIEWS_CATEGORIES as $id => $label ) {
-		echo '<div class="rating_row">';
-		echo '<div class="rating_label">' . esc_html( $label ) . '</div>';
-		echo '<div class="rating_value">';
+		echo '<tr>';
+		echo '<td class="rating_label">' . esc_html( $label ) . '</td>';
+		echo '<td class="rating_value">';
 		for ( $i = 1; $i <= 5; $i++ ) {
-			echo '<a href="javascript:void(0);" id="' . esc_attr( $id . '_' . $i ) . '" onclick="rateIt(this,' . esc_attr( $id ) . ')" onmouseover="rating(this,' . esc_attr( $id ) . ')" onmouseout="rolloff(this,' . esc_attr( $id ) . ')"><i class="fa fa-star"></i></a>';
+			echo '<a id="' . esc_attr( $id . '_' . $i ) . '" onclick="rateIt(this,' . esc_attr( $id ) . ')" onmouseover="rating(this,' . esc_attr( $id ) . ')" onmouseout="rolloff(this,' . esc_attr( $id ) . ')"><i class="fa fa-star"></i></a>';
 		}
 		echo '<input type="hidden" name="' . esc_attr( $id . '_rating' ) . '" id="' . esc_attr( $id . '_rating' ) . '" value="0" />';
-		echo '</div></div>';
+		echo '</td></tr>';
 	}
 
-	echo '</div>';
+	echo '</table>';
 }
+
 
 
 // output number of unique positive reviews for a post
