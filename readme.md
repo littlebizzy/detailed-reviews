@@ -15,3 +15,12 @@
 - outputs schema.org AggregateRating markup using average score and review count
 - requires custom or child theme (e.g. comments template, single template, and functions.php)
 - designed for classic PHP-based themes (not block/FSE themes)
+
+#### Required theme functions
+- `ratings_input_table()` — displays the ratings form within the comment form
+- `ratings_table()` — outputs the average ratings table for a post with progress bars
+- `detailed_reviews_render_stars( $average )` — renders star icons based on average score
+
+#### Optional theme hooks
+- `add_filter( 'preprocess_comment', 'detailed_reviews_require_rating' )` — blocks comment submission if no overall rating is selected
+- `add_filter( 'detailed_reviews_itemreviewed_type', ... )` — overrides schema.org item type (e.g. `CollegeOrUniversity` instead of `Thing`)
