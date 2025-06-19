@@ -419,9 +419,12 @@ function rs_comment_text($content) {
 	ob_start();
 	?>
 	<div itemprop="review" itemscope itemtype="http://schema.org/Review">
-
-		<span itemprop="itemReviewed" itemscope itemtype="http://schema.org/Thing">
-			<meta itemprop="name" content="<?php echo $post_title; ?>">
+		
+		<?php
+		$schema_item_type = apply_filters( 'detailed_reviews_itemreviewed_type', 'http://schema.org/Thing', $comment_post_id );
+		?>
+		<span itemprop="itemReviewed" itemscope itemtype="<?php echo esc_attr( $schema_item_type ); ?>">
+    		<meta itemprop="name" content="<?php echo esc_attr( $post_title ); ?>">
 		</span>
 
 		<div itemprop="author" itemscope itemtype="http://schema.org/Person">
