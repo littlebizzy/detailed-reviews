@@ -39,7 +39,7 @@ function get_ratings($custom_id = null) {
 	if (is_numeric($custom_id))
 		$pid = $custom_id;
 
-	$categories = get_option('rs_categories');
+	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
 
 	$query = "SELECT rating_id, SUM(rating_value) / COUNT(rating_value) AS rating_value
 			  FROM {$wpdb->ratings}
@@ -51,7 +51,7 @@ function get_ratings($custom_id = null) {
 			  ORDER BY rating_id";
 
 	$result = $wpdb->get_results($query);
-	$show = get_post_meta($pid, '_rs_categories', true);
+	$show = array_keys($categories);
 
 	$ratings = array();
 	foreach ($categories as $cid => $cat) {
@@ -145,7 +145,7 @@ function get_comment_ratings($custom_id = null) {
 	if (is_numeric($custom_id))
 		$cid = $custom_id;
 
-	$categories = get_option('rs_categories');
+	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
 
 	$query = "SELECT rating_id, rating_value AS rating_value, {$wpdb->comments}.comment_post_ID AS comment_post_ID
 			  FROM {$wpdb->ratings}
@@ -158,7 +158,7 @@ function get_comment_ratings($custom_id = null) {
 	if (count($result) == 0) return array();
 
 	$pid = $result[0]->comment_post_ID;
-	$show = get_post_meta($pid, '_rs_categories', true);
+	$show = array_keys($categories);
 
 	$ratings = array();
 	foreach ($categories as $cid => $cat) {
@@ -246,8 +246,8 @@ function comment_ratings_table($custom_id = null, $return = false) {
 // output input list of star ratings inside the comment form
 function ratings_input_list($return = false) {
 	$pid = get_the_ID();
-	$categories = get_option('rs_categories');
-	$show = get_post_meta($pid, '_rs_categories', true);
+	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
+	$show = array_keys($categories);
 	if (empty($show)) return;
 
 	$html = '<ul class="ratings">';
@@ -312,7 +312,7 @@ function get_positive_negative_count($custom_id = null) {
 	if (is_numeric($custom_id))
 		$pid = $custom_id;
 
-	$categories = get_option('rs_categories');
+	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
 
 	$query = "SELECT AVG(rating_value) AS rating_value
 			  FROM {$wpdb->ratings}
@@ -370,10 +370,6 @@ function rs_init() {
 	wp_register_script( 'rs_js', plugins_url( 'detailed-reviews.js', __FILE__ ) );
 	wp_enqueue_script( 'rs_js' );
 
-	if ( is_admin() ) {
-		add_action( 'save_post', 'wprs_box_hook', 5, 2 );
-	}
-
 	// always embed schema-wrapped comment text
 	add_filter( 'get_comment_text', 'rs_comment_text' );
 
@@ -410,7 +406,7 @@ function rs_comment_text($content) {
 
 	$comment_id = $comment->comment_ID;
 	$comment_post_id = $comment->comment_post_ID;
-	$categories = get_post_meta($comment_post_id, '_rs_categories', true);
+	$categories = is_array(DETAILED_REVIEWS_CATEGORIES ?? null) ? DETAILED_REVIEWS_CATEGORIES : array();
 	if (empty($categories)) return $content;
 
 	$post_title = get_post_field( 'post_title', $comment_post_id );
@@ -465,7 +461,7 @@ function rs_preprocess($incoming_comment) {
 	}
 
 	$pid = $incoming_comment['comment_post_ID'];
-	$active_categories = get_post_meta($pid, '_rs_categories', true);
+	$active_categories = is_array(DETAILED_REVIEWS_CATEGORIES ?? null) ? array_keys(DETAILED_REVIEWS_CATEGORIES) : array();
 
 	if (empty($active_categories)) {
 		return $incoming_comment;
@@ -494,7 +490,7 @@ function rs_preprocess($incoming_comment) {
 // save submitted ratings after comment is posted
 function rs_comment_posted($comment_ID, $status = null) {
 	global $wpdb;
-	$categories = get_option('rs_categories');
+	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
 
 	foreach ($categories as $id => $cat) {
 		if (isset($_POST[$id . '_rating']) && $_POST[$id . '_rating'] > 0 && $_POST[$id . '_rating'] <= 5) {
@@ -503,29 +499,6 @@ function rs_comment_posted($comment_ID, $status = null) {
 				$comment_ID, $id, $_POST[$id . '_rating']
 			));
 		}
-	}
-}
-		
-// output category checkboxes on post edit screen
-function rs_rating_categories_box() {
-	global $post;
-	$categories = get_option('rs_categories');
-	$mine = get_post_meta($post->ID, '_rs_categories', true);
-
-	echo '<ul class="categorychecklist form-no-clear">';
-	foreach ($categories as $id => $category) {
-		echo '<li><input type="checkbox" name="rs_categories[]" value="' . $id . '"';
-		if (!empty($mine) && in_array($id, $mine)) echo ' checked="checked"';
-		echo '> <label>' . $category . '</label></li>';
-	}
-	echo '</ul>';
-}
-
-// save selected rating categories when post is saved
-function wprs_box_hook($post_id, $post) {
-	if ($post->post_type != 'revision' && isset($_POST['visitlink'])) {
-		$categories = !empty($_POST['rs_categories']) ? $_POST['rs_categories'] : array();
-		update_post_meta($post_id, '_rs_categories', $categories);
 	}
 }
 
