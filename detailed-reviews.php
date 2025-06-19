@@ -411,7 +411,7 @@ function rs_comment_text($content) {
 	$categories = get_post_meta($comment_post_id, '_rs_categories', true);
 	if (empty($categories)) return $content;
 
-	$post_title = get_the_title($comment_post_id);
+	$post_title = get_post_field( 'post_title', $comment_post_id );
 	$date = esc_attr(get_comment_date('Y-m-d', $comment_id));
 	$author_name = esc_html(get_comment_author($comment_id));
 	$rating_value = substr(get_average_comment_rating($comment_id), 0, 4);
