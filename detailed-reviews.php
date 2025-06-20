@@ -142,10 +142,18 @@ function ratings_table( $custom_id = null, $return = false ) {
 
     $html = '<div id="ratings">';
     foreach ( $ratings as $cat => $rating ) {
-        $percent = round( (float) $rating / 5 * 100 );
-        $percent = absint( $percent );
-        $html   .= '<div class="rating_label">' . esc_html( $cat ) . '</div>';
-        $html   .= '<div class="rating_value"><div class="rating_fill" style="width:' . esc_attr( $percent ) . '%"></div></div>';
+        $normalized = max( 0, min( 5, (float) $rating ) );
+        $percent    = round( pow( $normalized / 5, 1.5 ) * 100 );
+        if ( $normalized >= 4 ) {
+            $bar_color = 'green';
+        } elseif ( $normalized >= 2.5 ) {
+            $bar_color = 'orange';
+        } else {
+            $bar_color = 'red';
+        }
+
+        $html .= '<div class="rating_label">' . esc_html( $cat ) . '</div>';
+        $html .= '<div class="rating_value"><div class="rating_fill ' . $bar_color . '" style="width:' . esc_attr( $percent ) . '%"></div></div>';
     }
     $html .= '</div>';
 
@@ -729,6 +737,15 @@ add_action('wp_head', function() {
 			background: #f0c040;
 			height: 100%;
 			border-radius: 4px;
+		}
+		#ratings .rating_fill.green {
+			background: #2ecc71;
+		}
+		#ratings .rating_fill.orange {
+			background: #f39c12;
+		}
+		#ratings .rating_fill.red {
+			background: #e74c3c;
 		}
 	</style>
 	<?php
