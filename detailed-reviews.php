@@ -32,42 +32,48 @@ global $wpdb;
 $wpdb->ratings = $wpdb->prefix . 'rs_ratings';
 
 // return average ratings for each category of a post
-function get_ratings($custom_id = null) {
-	global $wpdb;
+function get_ratings( $custom_id = null ) {
+    global $wpdb;
 
-	$pid = get_the_ID();
-	if (is_numeric($custom_id)) {
-		$pid = (int) $custom_id;
-	}
+    $pid = get_the_ID();
+    if ( is_numeric( $custom_id ) ) {
+        $pid = (int) $custom_id;
+    }
 
-	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
-	if (empty($categories)) return array();
+    $categories = defined( 'DETAILED_REVIEWS_CATEGORIES' ) && is_array( DETAILED_REVIEWS_CATEGORIES )
+        ? DETAILED_REVIEWS_CATEGORIES
+        : array();
+    if ( empty( $categories ) ) {
+        return array();
+    }
 
-	$query = "SELECT rating_id, SUM(rating_value) / COUNT(rating_value) AS rating_value
-			  FROM {$wpdb->ratings}
-			  INNER JOIN {$wpdb->comments}
-			  	ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id
-			  WHERE {$wpdb->comments}.comment_post_ID = $pid
-			  	AND {$wpdb->comments}.comment_approved = 1
-			  GROUP BY rating_id
-			  ORDER BY rating_id";
+    $query = $wpdb->prepare(
+        "SELECT rating_id, SUM(rating_value) / COUNT(rating_value) AS rating_value
+        FROM {$wpdb->ratings}
+        INNER JOIN {$wpdb->comments}
+            ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id
+        WHERE {$wpdb->comments}.comment_post_ID = %d
+            AND {$wpdb->comments}.comment_approved = 1
+        GROUP BY rating_id
+        ORDER BY rating_id",
+        $pid
+    );
+    $result = $wpdb->get_results( $query );
 
-	$result = $wpdb->get_results($query);
+    $ratings = array();
+    foreach ( $categories as $cid => $cat ) {
+        $ratings[ $cat ] = 0;
+    }
 
-	$ratings = array();
-	foreach ($categories as $cid => $cat) {
-		$ratings[$cat] = 0;
-	}
+    if ( ! empty( $result ) ) {
+        foreach ( $result as $rating ) {
+            if ( isset( $categories[ $rating->rating_id ] ) ) {
+                $ratings[ $categories[ $rating->rating_id ] ] = $rating->rating_value;
+            }
+        }
+    }
 
-	if (!empty($result)) {
-		foreach ($result as $rating) {
-			if (isset($categories[$rating->rating_id])) {
-				$ratings[$categories[$rating->rating_id]] = $rating->rating_value;
-			}
-		}
-	}
-
-	return $ratings;
+    return $ratings;
 }
 	
 // return average rating across all categories for a post
