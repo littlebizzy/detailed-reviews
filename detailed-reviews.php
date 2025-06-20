@@ -30,16 +30,18 @@ add_filter( 'gu_override_dot_org', function( $overrides ) {
 // set up custom table aliases
 global $wpdb;
 $wpdb->ratings = $wpdb->prefix . 'rs_ratings';
-$wpdb->visitlinks = $wpdb->prefix . 'rs_visit_links';
 
 // return average ratings for each category of a post
 function get_ratings($custom_id = null) {
 	global $wpdb;
+
 	$pid = get_the_ID();
-	if (is_numeric($custom_id))
-		$pid = $custom_id;
+	if (is_numeric($custom_id)) {
+		$pid = (int) $custom_id;
+	}
 
 	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
+	if (empty($categories)) return array();
 
 	$query = "SELECT rating_id, SUM(rating_value) / COUNT(rating_value) AS rating_value
 			  FROM {$wpdb->ratings}
@@ -51,18 +53,17 @@ function get_ratings($custom_id = null) {
 			  ORDER BY rating_id";
 
 	$result = $wpdb->get_results($query);
-	$show = array_keys($categories);
 
 	$ratings = array();
 	foreach ($categories as $cid => $cat) {
-		if (!empty($show) && in_array($cid, $show))
-			$ratings[$cat] = 0;
+		$ratings[$cat] = 0;
 	}
 
-	if (count($result) > 0) {
+	if (!empty($result)) {
 		foreach ($result as $rating) {
-			if (!empty($show) && in_array($rating->rating_id, $show))
+			if (isset($categories[$rating->rating_id])) {
 				$ratings[$categories[$rating->rating_id]] = $rating->rating_value;
+			}
 		}
 	}
 
@@ -71,12 +72,13 @@ function get_ratings($custom_id = null) {
 	
 // return average rating across all categories for a post
 function get_average_rating($custom_id = null) {
-	global $wpdb;
 	$pid = get_the_ID();
-	if (is_numeric($custom_id))
-		$pid = $custom_id;
+	if (is_numeric($custom_id)) {
+		$pid = (int) $custom_id;
+	}
 
 	$ratings = get_ratings($pid);
+	if (empty($ratings)) return 0;
 
 	$sum = 0;
 	$count = 0;
@@ -92,49 +94,51 @@ function get_average_rating($custom_id = null) {
 		
 // output unordered list of average ratings for a post
 function ratings_list($custom_id = null, $return = false) {
-	global $wpdb;
 	$pid = get_the_ID();
-	if (is_numeric($custom_id))
-		$pid = $custom_id;
+	if (is_numeric($custom_id)) {
+		$pid = (int) $custom_id;
+	}
 
 	$ratings = get_ratings($pid);
-	if (count($ratings) == 0) return;
+	if (empty($ratings)) return;
 
 	$html = '<ul class="ratings">';
 	foreach ($ratings as $cat => $rating) {
 		$html .= '<li>';
-		$html .= '<label class="rating_label">' . $cat . '</label> ';
+		$html .= '<label class="rating_label">' . esc_html($cat) . '</label> ';
 		$html .= '<span class="rating_value">';
 		$html .= ($rating > 0) ? num_to_stars($rating) : 'No Ratings';
 		$html .= '</span></li>';
 	}
 	$html .= '</ul>';
 
-	if ($return)
+	if ($return) {
 		return $html;
+	}
 	echo $html;
 }
 		
 // output div-based table of average ratings for a post
 function ratings_table($custom_id = null, $return = false) {
-	global $wpdb;
 	$pid = get_the_ID();
 	if (is_numeric($custom_id)) {
-		$pid = $custom_id;
+		$pid = (int) $custom_id;
 	}
 
 	$ratings = get_ratings($pid);
-	if (count($ratings) == 0) return;
+	if (empty($ratings)) return;
 
 	$html = '<div id="ratings">';
 	foreach ($ratings as $cat => $rating) {
 		$percent = round( (float) $rating / 5 * 100 );
 		$html .= '<div class="rating_label">' . esc_html($cat) . '</div>';
-		$html .= '<div class="rating_value"><div class="rating_fill" style="width: ' . $percent . '%"></div></div>';
+		$html .= '<div class="rating_value"><div class="rating_fill" style="width:' . $percent . '%"></div></div>';
 	}
 	$html .= '</div>';
 
-	if ($return) return $html;
+	if ($return) {
+		return $html;
+	}
 	echo $html;
 }
 	
