@@ -502,34 +502,6 @@ function rs_comment_posted($comment_ID, $status = null) {
 	}
 }
 
-// append ratings table or list to post content
-function embed_ratings_table($content) {
-	if (get_option('rs_embed_format') == 'table') {
-		if (get_option('rs_post_embed') == 'top')
-			return ratings_table(null, true) . $content;
-		return $content . ratings_table(null, true);
-	}
-
-	if (get_option('rs_post_embed') == 'top')
-		return ratings_list(null, true) . $content;
-
-	return $content . ratings_list(null, true);
-}
-
-// append comment ratings to comment content
-function embed_comment_ratings_table($content) {
-	if (get_option('rs_embed_format') == 'table') {
-		if (get_option('rs_comment_embed') == 'top')
-			return comment_ratings_table(null, true) . $content;
-		return $content . comment_ratings_table(null, true);
-	}
-
-	if (get_option('rs_comment_embed') == 'top')
-		return comment_ratings_list(null, true) . $content;
-
-	return $content . comment_ratings_list(null, true);
-}
-
 // add weighted rating fields to post query
 function rs_weighted_fields($content) {
 	global $wpdb;
