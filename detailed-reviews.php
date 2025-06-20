@@ -145,34 +145,33 @@ function ratings_table($custom_id = null, $return = false) {
 // return ratings for a specific comment by category
 function get_comment_ratings($custom_id = null) {
 	global $wpdb, $comment;
-	$cid = $comment->comment_ID;
-	if (is_numeric($custom_id))
-		$cid = $custom_id;
+	$cid = isset($comment->comment_ID) ? (int) $comment->comment_ID : 0;
+	if (is_numeric($custom_id)) {
+		$cid = (int) $custom_id;
+	}
+	if ($cid < 1) return array();
 
 	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
+	if (empty($categories)) return array();
 
-	$query = "SELECT rating_id, rating_value AS rating_value, {$wpdb->comments}.comment_post_ID AS comment_post_ID
-			  FROM {$wpdb->ratings}
-			  INNER JOIN {$wpdb->comments}
-			  	ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id
-			  WHERE {$wpdb->comments}.comment_ID = $cid
-			  ORDER BY rating_id";
+	$query = "
+		SELECT rating_id, rating_value, {$wpdb->comments}.comment_post_ID
+		FROM {$wpdb->ratings}
+		INNER JOIN {$wpdb->comments}
+			ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id
+		WHERE {$wpdb->comments}.comment_ID = {$cid}
+		ORDER BY rating_id
+	";
 
 	$result = $wpdb->get_results($query);
-	if (count($result) == 0) return array();
+	if (empty($result)) return array();
 
-	$pid = $result[0]->comment_post_ID;
-	$show = array_keys($categories);
-
-	$ratings = array();
-	foreach ($categories as $cid => $cat) {
-		if (!empty($show) && in_array($cid, $show))
-			$ratings[$cat] = 0;
-	}
+	$ratings = array_fill_keys(array_values($categories), 0);
 
 	foreach ($result as $rating) {
-		if (!empty($show) && in_array($rating->rating_id, $show))
+		if (isset($categories[$rating->rating_id])) {
 			$ratings[$categories[$rating->rating_id]] = $rating->rating_value;
+		}
 	}
 
 	return $ratings;
@@ -180,12 +179,17 @@ function get_comment_ratings($custom_id = null) {
 
 // return average rating for a single comment
 function get_average_comment_rating($custom_id = null) {
-	global $wpdb, $comment;
-	$cid = $comment->comment_ID;
-	if (is_numeric($custom_id))
-		$cid = $custom_id;
+	global $comment;
+
+	$cid = isset($comment->comment_ID) ? (int) $comment->comment_ID : 0;
+	if (is_numeric($custom_id)) {
+		$cid = (int) $custom_id;
+	}
+	if ($cid < 1) return 0;
 
 	$ratings = get_comment_ratings($cid);
+	if (empty($ratings)) return 0;
+
 	$sum = 0;
 	$count = 0;
 	foreach ($ratings as $rating) {
@@ -200,80 +204,81 @@ function get_average_comment_rating($custom_id = null) {
 
 // output unordered list of ratings for a specific comment
 function comment_ratings_list($custom_id = null, $return = false) {
-	global $comment, $wpdb;
-	$cid = $comment->comment_ID;
-	if (is_numeric($custom_id))
-		$cid = $custom_id;
+	global $comment;
+
+	$cid = isset($comment->comment_ID) ? (int) $comment->comment_ID : 0;
+	if (is_numeric($custom_id)) {
+		$cid = (int) $custom_id;
+	}
+	if ($cid < 1) return;
 
 	$ratings = get_comment_ratings($cid);
-	if (count($ratings) == 0) return;
+	if (empty($ratings)) return;
 
 	$html = '<ul class="ratings">';
 	foreach ($ratings as $cat => $rating) {
 		$html .= '<li>';
-		$html .= '<label class="rating_label">' . $cat . '</label> ';
-		$html .= '<span class="rating_value">';
-		$html .= num_to_stars($rating);
-		$html .= '</span></li>';
+		$html .= '<label class="rating_label">' . esc_html($cat) . '</label> ';
+		$html .= '<span class="rating_value">' . num_to_stars($rating) . '</span>';
+		$html .= '</li>';
 	}
 	$html .= '</ul>';
 
-	if ($return)
-		return $html;
+	if ($return) return $html;
 	echo $html;
 }
 	
 // output table of ratings for a specific comment
 function comment_ratings_table($custom_id = null, $return = false) {
-	global $comment, $wpdb;
-	$cid = $comment->comment_ID;
-	if (is_numeric($custom_id))
-		$cid = $custom_id;
+	global $comment;
+
+	$cid = isset($comment->comment_ID) ? (int) $comment->comment_ID : 0;
+	if (is_numeric($custom_id)) {
+		$cid = (int) $custom_id;
+	}
+	if ($cid < 1) return;
 
 	$ratings = get_comment_ratings($cid);
-	if (count($ratings) == 0) return;
+	if (empty($ratings)) return;
 
 	$html = '<table class="ratings">';
 	foreach ($ratings as $cat => $rating) {
 		$html .= '<tr>';
-		$html .= '<td class="rating_label">' . $cat . '</td>';
+		$html .= '<td class="rating_label">' . esc_html($cat) . '</td>';
 		$html .= '<td class="rating_value">' . num_to_stars($rating) . '</td>';
 		$html .= '</tr>';
 	}
 	$html .= '</table>';
 
-	if ($return)
-		return $html;
+	if ($return) return $html;
 	echo $html;
 }
 
 // output input list of star ratings inside the comment form
 function ratings_input_list($return = false) {
-	$pid = get_the_ID();
 	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
-	$show = array_keys($categories);
-	if (empty($show)) return;
+	if (empty($categories)) return;
 
 	$html = '<ul class="ratings">';
 	foreach ($categories as $cid => $cat) {
-		if (in_array($cid, $show)) {
-			$html .= '<li>';
-			$html .= '<label class="rating_label" style="float: left">' . $cat . '</label> ';
-			$html .= '<div class="rating_value">';
-			for ($i = 1; $i <= 5; $i++) {
-				$html .= '<a onclick="rateIt(this, ' . $cid . ')" id="' . $cid . '_' . $i . '" title="' . $i . '" onmouseover="rating(this, ' . $cid . ')" onmouseout="rolloff(this, ' . $cid . ')"></a>';
-			}
-			$html .= '<input type="hidden" id="' . $cid . '_rating" name="' . $cid . '_rating" value="0" />';
-			$html .= '</div></li>';
+		$cid = (int) $cid;
+		$cat = esc_html($cat);
+		$html .= '<li>';
+		$html .= '<label class="rating_label" style="float: left">' . $cat . '</label>';
+		$html .= '<div class="rating_value">';
+		for ($i = 1; $i <= 5; $i++) {
+			$html .= '<a onclick="rateIt(this,' . $cid . ')" id="' . $cid . '_' . $i . '" title="' . $i . '" onmouseover="rating(this,' . $cid . ')" onmouseout="rolloff(this,' . $cid . ')"></a>';
 		}
+		$html .= '<input type="hidden" id="' . $cid . '_rating" name="' . $cid . '_rating" value="0" />';
+		$html .= '</div></li>';
 	}
 	$html .= '</ul>';
 
-	if ($return)
-		return $html;
+	if ($return) return $html;
 	echo $html;
 }
 
+// output input table of star ratings inside the comment form
 function ratings_input_table() {
 	if ( ! defined( 'DETAILED_REVIEWS_CATEGORIES' ) || ! is_array( DETAILED_REVIEWS_CATEGORIES ) ) {
 		return;
@@ -295,99 +300,109 @@ function ratings_input_table() {
 	echo '</table>';
 }
 
-
-
 // output number of unique positive reviews for a post
-function positive_reviews($custom_id = null) {
-	$ratings = get_positive_negative_count($custom_id);
-	echo $ratings['positive'];
+function positive_reviews( $custom_id = null ) {
+	$ratings = get_positive_negative_count( $custom_id );
+	if ( isset( $ratings['positive'] ) ) {
+		echo intval( $ratings['positive'] );
+	}
 }
-	
+
 // output number of unique negative reviews for a post
-function negative_reviews($custom_id = null) {
-	$ratings = get_positive_negative_count($custom_id);
-	echo $ratings['negative'];
+function negative_reviews( $custom_id = null ) {
+	$ratings = get_positive_negative_count( $custom_id );
+	if ( isset( $ratings['negative'] ) ) {
+		echo intval( $ratings['negative'] );
+	}
 }
 
 // return array of positive and negative review counts for a post
-function get_positive_negative_count($custom_id = null) {
+function get_positive_negative_count( $custom_id = null ) {
 	global $wpdb;
+
 	$pid = get_the_ID();
-	if (is_numeric($custom_id))
-		$pid = $custom_id;
+	if ( is_numeric( $custom_id ) ) {
+		$pid = (int) $custom_id;
+	}
 
-	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
+	$query = "
+		SELECT AVG(rating_value) AS rating_value
+		FROM {$wpdb->ratings}
+		INNER JOIN {$wpdb->comments}
+			ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id
+		WHERE {$wpdb->comments}.comment_post_ID = %d
+			AND {$wpdb->comments}.comment_approved = 1
+			AND {$wpdb->ratings}.rating_value > 0
+		GROUP BY {$wpdb->ratings}.comment_id
+	";
 
-	$query = "SELECT AVG(rating_value) AS rating_value
-			  FROM {$wpdb->ratings}
-			  INNER JOIN {$wpdb->comments}
-			  	ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id
-			  WHERE {$wpdb->comments}.comment_post_ID = $pid
-			  	AND {$wpdb->comments}.comment_approved = 1
-			  	AND {$wpdb->ratings}.rating_value > 0
-			  GROUP BY {$wpdb->ratings}.comment_id";
-
-	$result = $wpdb->get_results($query);
+	$prepared = $wpdb->prepare( $query, $pid );
+	$result = $wpdb->get_results( $prepared );
 
 	$positive = 0;
 	$negative = 0;
-	foreach ($result as $row) {
-		if ($row->rating_value >= 3) {
+
+	foreach ( $result as $row ) {
+		if ( $row->rating_value >= 3 ) {
 			$positive++;
 		} else {
 			$negative++;
 		}
 	}
 
-	return array('positive' => $positive, 'negative' => $negative);
+	return array(
+		'positive' => $positive,
+		'negative' => $negative,
+	);
 }
 
 // round a number to the nearest 0.5
-function round_to_half($num = 0) {
-	return floor($num * 2) / 2;
+function round_to_half( $num = 0 ) {
+	return floor( $num * 2 ) / 2;
 }
 
 // convert numeric rating to star spans
-function num_to_stars($num) {
-	$stars = round_to_half($num);
-	$num = round($num, 2);
+function num_to_stars( $num ) {
+	$stars = round_to_half( $num );
+	$display = number_format( $num, 2 );
 
 	$html = '';
-	for ($i = 0; $i < floor($stars); $i++)
-		$html .= '<span class="star-full" alt="' . $num . '"></span>';
 
-	if (floor($stars) != $stars)
-		$html .= '<span class="star-half" alt="' . $num . '"></span>';
+	for ( $i = 0; $i < floor( $stars ); $i++ ) {
+		$html .= '<span class="star-full" aria-label="' . esc_attr( $display ) . '"></span>';
+	}
 
-	if (ceil($stars) < 5)
-		for ($i = ceil($stars); $i < 5; $i++)
-			$html .= '<span class="star-none" alt="' . $num . '"></span>';
+	if ( floor( $stars ) != $stars ) {
+		$html .= '<span class="star-half" aria-label="' . esc_attr( $display ) . '"></span>';
+	}
+
+	if ( ceil( $stars ) < 5 ) {
+		for ( $i = ceil( $stars ); $i < 5; $i++ ) {
+			$html .= '<span class="star-none" aria-label="' . esc_attr( $display ) . '"></span>';
+		}
+	}
 
 	return $html;
 }
 
 // initialize review settings and filters
-add_action('init', 'rs_init');
+add_action( 'init', 'rs_init' );
 
-// initialize review settings and filters
 function rs_init() {
 	wp_register_script( 'rs_js', plugins_url( 'detailed-reviews.js', __FILE__ ) );
 	wp_enqueue_script( 'rs_js' );
 
-	// always embed schema-wrapped comment text
+	// embed schema-wrapped comment content
 	add_filter( 'get_comment_text', 'rs_comment_text' );
 
-	// save comment ratings when comment is posted
+	// save ratings when comment is posted
 	add_action( 'comment_post', 'rs_comment_posted' );
 
-	// always enforce category ratings on comments
+	// enforce ratings input
 	add_filter( 'preprocess_comment', 'rs_preprocess' );
 
-	// post sorting logic
-	if (
-		isset( $_GET['v_orderby'] ) &&
-		in_array( $_GET['v_orderby'], array( 'rating', 'comments' ), true )
-	) {
+	// custom post sorting
+	if ( isset( $_GET['v_orderby'] ) ) {
 		$orderby = $_GET['v_orderby'];
 
 		if ( $orderby === 'rating' ) {
@@ -403,86 +418,89 @@ function rs_init() {
 	}
 }
 
-
 // append comment rating table after comment text
-function rs_comment_text($content) {
+function rs_comment_text( $content ) {
 	global $comment;
 
-	$comment_id = $comment->comment_ID;
-	$comment_post_id = $comment->comment_post_ID;
-	$categories = is_array(DETAILED_REVIEWS_CATEGORIES ?? null) ? DETAILED_REVIEWS_CATEGORIES : array();
-	if (empty($categories)) return $content;
+	if ( ! is_object( $comment ) || empty( $comment->comment_ID ) ) {
+		return $content;
+	}
 
-	$post_title = get_post_field( 'post_title', $comment_post_id );
-	$date = esc_attr(get_comment_date('Y-m-d', $comment_id));
-	$author_name = esc_html(get_comment_author($comment_id));
-	$rating_value = substr(get_average_comment_rating($comment_id), 0, 4);
+	$comment_id      = $comment->comment_ID;
+	$comment_post_id = $comment->comment_post_ID;
+	$categories      = defined( 'DETAILED_REVIEWS_CATEGORIES' ) && is_array( DETAILED_REVIEWS_CATEGORIES ) ? DETAILED_REVIEWS_CATEGORIES : array();
+
+	if ( empty( $categories ) ) {
+		return $content;
+	}
+
+	$post_title   = get_post_field( 'post_title', $comment_post_id );
+	$date         = esc_attr( get_comment_date( 'Y-m-d', $comment_id ) );
+	$author_name  = get_comment_author( $comment_id );
+	$rating_value = substr( get_average_comment_rating( $comment_id ), 0, 4 );
 
 	ob_start();
 	?>
 	<div itemprop="review" itemscope itemtype="http://schema.org/Review">
-		
+
 		<?php
 		$schema_item_type = apply_filters( 'detailed_reviews_itemreviewed_type', 'http://schema.org/Thing', $comment_post_id );
 		?>
 		<span itemprop="itemReviewed" itemscope itemtype="<?php echo esc_attr( $schema_item_type ); ?>">
-    		<meta itemprop="name" content="<?php echo esc_attr( $post_title ); ?>">
+			<meta itemprop="name" content="<?php echo esc_attr( $post_title ); ?>">
 		</span>
 
 		<div itemprop="author" itemscope itemtype="http://schema.org/Person">
-			<meta itemprop="name" content="<?php echo $author_name; ?>">
+			<meta itemprop="name" content="<?php echo esc_attr( $author_name ); ?>">
 		</div>
 
-		<meta itemprop="datePublished" content="<?php echo $date; ?>">
+		<meta itemprop="datePublished" content="<?php echo esc_attr( $date ); ?>">
 
 		<div itemprop="description"><?php echo $content; ?></div>
 
-        <?php if ( $rating_value > 0 ) : ?>
-                <div itemprop="reviewRating" itemscope itemtype="http://schema.org/Rating">
-                        <small>Overall Score: (<span itemprop="ratingValue"><?php echo $rating_value; ?></span>/5.00)</small>
-                        <meta itemprop="worstRating" content="1" />
-                        <meta itemprop="bestRating" content="5" />
-                </div>
-        <?php endif; ?>
+		<?php if ( $rating_value > 0 ) : ?>
+			<div itemprop="reviewRating" itemscope itemtype="http://schema.org/Rating">
+				<small>Overall Score: (<span itemprop="ratingValue"><?php echo esc_html( $rating_value ); ?></span>/5.00)</small>
+				<meta itemprop="worstRating" content="1" />
+				<meta itemprop="bestRating" content="5" />
+			</div>
+		<?php endif; ?>
 
 	</div>
 	<?php
 	return ob_get_clean();
 }
 
-
 // validate ratings before saving a comment
-function rs_preprocess($incoming_comment) {
-	// temp
-	error_log(print_r($_POST, true));
-	error_log( print_r( $active_categories, true ) );
-
-
-	
-
-	if ($incoming_comment['comment_type'] === 'pingback' || $incoming_comment['comment_type'] === 'trackback') {
+function rs_preprocess( $incoming_comment ) {
+	if (
+		$incoming_comment['comment_type'] === 'pingback' ||
+		$incoming_comment['comment_type'] === 'trackback'
+	) {
 		return $incoming_comment;
 	}
 
 	$pid = $incoming_comment['comment_post_ID'];
-	$active_categories = is_array(DETAILED_REVIEWS_CATEGORIES ?? null) ? array_keys(DETAILED_REVIEWS_CATEGORIES) : array();
+	$active_categories = defined( 'DETAILED_REVIEWS_CATEGORIES' ) && is_array( DETAILED_REVIEWS_CATEGORIES )
+		? array_keys( DETAILED_REVIEWS_CATEGORIES )
+		: array();
 
-	if (empty($active_categories)) {
+	if ( empty( $active_categories ) ) {
 		return $incoming_comment;
 	}
 
-	foreach ($active_categories as $category_id) {
+	foreach ( $active_categories as $category_id ) {
 		$key = $category_id . '_rating';
 		if (
-			! isset($_POST[$key]) ||
-			! is_numeric($_POST[$key]) ||
-			(int) $_POST[$key] < 1 ||
-			(int) $_POST[$key] > 5
+			! isset( $_POST[ $key ] ) ||
+			! is_numeric( $_POST[ $key ] ) ||
+			(int) $_POST[ $key ] < 1 ||
+			(int) $_POST[ $key ] > 5
 		) {
 			wp_die(
 				'you must rate all required categories from 1 to 5 before submitting your review. your comment text appears below so you can copy and resubmit it:<br><br>'
-				. esc_html($incoming_comment['comment_content'])
-				. '<br><br><a href="' . esc_url(get_permalink($pid)) . '#respond">← go back to review form</a>',
+				. esc_html( $incoming_comment['comment_content'] )
+				. '<br><br><a href="' . esc_url( get_permalink( $pid ) ) . '#respond">← go back to review form</a>',
 				'rating required'
 			);
 		}
@@ -492,54 +510,80 @@ function rs_preprocess($incoming_comment) {
 }
 		
 // save submitted ratings after comment is posted
-function rs_comment_posted($comment_ID, $status = null) {
+function rs_comment_posted( $comment_ID, $status = null ) {
 	global $wpdb;
-	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
 
-	foreach ($categories as $id => $cat) {
-		if (isset($_POST[$id . '_rating']) && $_POST[$id . '_rating'] > 0 && $_POST[$id . '_rating'] <= 5) {
-			$wpdb->query($wpdb->prepare(
-				"INSERT INTO {$wpdb->ratings} (comment_id, rating_id, rating_value) VALUES (%d, %d, %f)",
-				$comment_ID, $id, $_POST[$id . '_rating']
-			));
+	$categories = defined( 'DETAILED_REVIEWS_CATEGORIES' ) && is_array( DETAILED_REVIEWS_CATEGORIES )
+		? DETAILED_REVIEWS_CATEGORIES
+		: array();
+
+	foreach ( $categories as $id => $label ) {
+		$key = $id . '_rating';
+
+		if (
+			isset( $_POST[ $key ] ) &&
+			is_numeric( $_POST[ $key ] ) &&
+			(int) $_POST[ $key ] >= 1 &&
+			(int) $_POST[ $key ] <= 5
+		) {
+			$wpdb->query(
+				$wpdb->prepare(
+					"INSERT INTO {$wpdb->ratings} (comment_id, rating_id, rating_value) VALUES (%d, %d, %f)",
+					$comment_ID,
+					$id,
+					$_POST[ $key ]
+				)
+			);
 		}
 	}
 }
 
 // add weighted rating fields to post query
-function rs_weighted_fields($content) {
+function rs_weighted_fields( $fields ) {
 	global $wpdb;
 
-	$content .= ", (SUM({$wpdb->ratings}.rating_value) / COUNT({$wpdb->ratings}.rating_id)) AS rs_rating, ";
-	$content .= "(COUNT({$wpdb->comments}.comment_ID) / (COUNT({$wpdb->comments}.comment_ID) + 10)) * ";
-	$content .= "(SUM({$wpdb->ratings}.rating_value) / COUNT({$wpdb->ratings}.rating_id)) ";
-	$content .= "+ (5 / (COUNT({$wpdb->comments}.comment_ID) + 10)) * 3 AS rs_weighted";
+	$average_rating = "SUM({$wpdb->ratings}.rating_value) / COUNT({$wpdb->ratings}.rating_id)";
+	$comment_count = "COUNT({$wpdb->comments}.comment_ID)";
+	$weighted_score = "(
+		({$comment_count} / ({$comment_count} + 10)) * {$average_rating} +
+		(5 / ({$comment_count} + 10)) * 3
+	)";
 
-	return $content;
+	$fields .= ",
+		{$average_rating} AS rs_rating,
+		{$weighted_score} AS rs_weighted";
+
+	return $fields;
 }
 
 // join comments and ratings tables for weighted sorting
-function rs_weighted_join($content) {
+function rs_weighted_join($join) {
 	global $wpdb;
 
-	$content .= " LEFT OUTER JOIN {$wpdb->comments} ON {$wpdb->posts}.ID = {$wpdb->comments}.comment_post_ID "
-	          . "AND {$wpdb->comments}.comment_approved = 1 "
-	          . "LEFT OUTER JOIN {$wpdb->ratings} ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id "
-	          . "AND {$wpdb->ratings}.rating_value > 0 ";
+	$join .= " LEFT JOIN {$wpdb->comments} AS rc 
+	               ON rc.comment_post_ID = {$wpdb->posts}.ID 
+	              AND rc.comment_approved = 1 ";
 
-	return $content;
+	$join .= " LEFT JOIN {$wpdb->ratings} AS rr 
+	               ON rr.comment_id = rc.comment_ID 
+	              AND rr.rating_value > 0 ";
+
+	return $join;
 }
-	
+
 // add post id to group by clause for weighted sorting
-function rs_weighted_groupby($content) {
+function rs_weighted_groupby($groupby) {
 	global $wpdb;
-	if (!empty($content))
-		return $content . ', ' . $wpdb->posts . '.ID';
+
+	if (!empty($groupby)) {
+		return $groupby . ', ' . $wpdb->posts . '.ID';
+	}
+
 	return $wpdb->posts . '.ID';
 }
 
 // order posts by weighted rating then by date
-function rs_weighted_orderby($content) {
+function rs_weighted_orderby( $orderby ) {
 	global $wpdb;
 	return 'rs_weighted DESC, ' . $wpdb->posts . '.post_date DESC';
 }
@@ -551,6 +595,7 @@ function detailed_reviews_render_stars( $rating, $max = 5 ) {
 	$empty_stars = $max - $full_stars - ( $half_star ? 1 : 0 );
 
 	$html = '<span class="fa-stars">';
+
 	for ( $i = 0; $i < $full_stars; $i++ ) {
 		$html .= '<i class="fa-solid fa-star"></i>';
 	}
@@ -560,6 +605,7 @@ function detailed_reviews_render_stars( $rating, $max = 5 ) {
 	for ( $i = 0; $i < $empty_stars; $i++ ) {
 		$html .= '<i class="fa-regular fa-star"></i>';
 	}
+
 	$html .= '</span>';
 	return $html;
 }
