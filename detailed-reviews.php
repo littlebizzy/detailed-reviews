@@ -77,162 +77,192 @@ function get_ratings( $custom_id = null ) {
 }
 	
 // return average rating across all categories for a post
-function get_average_rating($custom_id = null) {
-	$pid = get_the_ID();
-	if (is_numeric($custom_id)) {
-		$pid = (int) $custom_id;
-	}
+function get_average_rating( $custom_id = null ) {
+    $pid = get_the_ID();
+    if ( is_numeric( $custom_id ) ) {
+        $pid = (int) $custom_id;
+    }
 
-	$ratings = get_ratings($pid);
-	if (empty($ratings)) return 0;
+    $ratings = get_ratings( $pid );
+    if ( empty( $ratings ) ) {
+        return 0;
+    }
 
-	$sum = 0;
-	$count = 0;
-	foreach ($ratings as $rating) {
-		if ($rating > 0) {
-			$sum += $rating;
-			$count++;
-		}
-	}
+    $sum   = 0;
+    $count = 0;
+    foreach ( $ratings as $rating ) {
+        if ( $rating > 0 ) {
+            $sum   += $rating;
+            $count++;
+        }
+    }
 
-	return ($count > 0) ? $sum / $count : 0;
+    return ( $count > 0 ) ? $sum / $count : 0;
 }
 		
 // output unordered list of average ratings for a post
-function ratings_list($custom_id = null, $return = false) {
-	$pid = get_the_ID();
-	if (is_numeric($custom_id)) {
-		$pid = (int) $custom_id;
-	}
+function ratings_list( $custom_id = null, $return = false ) {
+    $pid = get_the_ID();
+    if ( is_numeric( $custom_id ) ) {
+        $pid = (int) $custom_id;
+    }
 
-	$ratings = get_ratings($pid);
-	if (empty($ratings)) return;
+    $ratings = get_ratings( $pid );
+    if ( empty( $ratings ) ) {
+        return;
+    }
 
-	$html = '<ul class="ratings">';
-	foreach ($ratings as $cat => $rating) {
-		$html .= '<li>';
-		$html .= '<label class="rating_label">' . esc_html($cat) . '</label> ';
-		$html .= '<span class="rating_value">';
-		$html .= ($rating > 0) ? num_to_stars($rating) : 'No Ratings';
-		$html .= '</span></li>';
-	}
-	$html .= '</ul>';
+    $html = '<ul class="ratings">';
+    foreach ( $ratings as $cat => $rating ) {
+        $html .= '<li>';
+        $html .= '<label class="rating_label">' . esc_html( $cat ) . '</label> ';
+        $html .= '<span class="rating_value">';
+        $html .= ( $rating > 0 ) ? num_to_stars( $rating ) : 'No Ratings';
+        $html .= '</span></li>';
+    }
+    $html .= '</ul>';
 
-	if ($return) {
-		return $html;
-	}
-	echo $html;
+    if ( $return ) {
+        return $html;
+    }
+    echo $html;
 }
 		
 // output div-based table of average ratings for a post
-function ratings_table($custom_id = null, $return = false) {
-	$pid = get_the_ID();
-	if (is_numeric($custom_id)) {
-		$pid = (int) $custom_id;
-	}
+function ratings_table( $custom_id = null, $return = false ) {
+    $pid = get_the_ID();
+    if ( is_numeric( $custom_id ) ) {
+        $pid = (int) $custom_id;
+    }
 
-	$ratings = get_ratings($pid);
-	if (empty($ratings)) return;
+    $ratings = get_ratings( $pid );
+    if ( empty( $ratings ) ) {
+        return;
+    }
 
-	$html = '<div id="ratings">';
-	foreach ($ratings as $cat => $rating) {
-		$percent = round( (float) $rating / 5 * 100 );
-		$html .= '<div class="rating_label">' . esc_html($cat) . '</div>';
-		$html .= '<div class="rating_value"><div class="rating_fill" style="width:' . $percent . '%"></div></div>';
-	}
-	$html .= '</div>';
+    $html = '<div id="ratings">';
+    foreach ( $ratings as $cat => $rating ) {
+        $percent = round( (float) $rating / 5 * 100 );
+        $percent = absint( $percent );
+        $html   .= '<div class="rating_label">' . esc_html( $cat ) . '</div>';
+        $html   .= '<div class="rating_value"><div class="rating_fill" style="width:' . esc_attr( $percent ) . '%"></div></div>';
+    }
+    $html .= '</div>';
 
-	if ($return) {
-		return $html;
-	}
-	echo $html;
+    if ( $return ) {
+        return $html;
+    }
+    echo $html;
 }
 	
 // return ratings for a specific comment by category
-function get_comment_ratings($custom_id = null) {
-	global $wpdb, $comment;
-	$cid = isset($comment->comment_ID) ? (int) $comment->comment_ID : 0;
-	if (is_numeric($custom_id)) {
-		$cid = (int) $custom_id;
-	}
-	if ($cid < 1) return array();
+function get_comment_ratings( $custom_id = null ) {
+    global $wpdb, $comment;
+    $cid = isset( $comment->comment_ID ) ? (int) $comment->comment_ID : 0;
+    if ( is_numeric( $custom_id ) ) {
+        $cid = (int) $custom_id;
+    }
+    if ( $cid < 1 ) {
+        return array();
+    }
 
-	$categories = defined('DETAILED_REVIEWS_CATEGORIES') && is_array(DETAILED_REVIEWS_CATEGORIES) ? DETAILED_REVIEWS_CATEGORIES : array();
-	if (empty($categories)) return array();
+    $categories = defined( 'DETAILED_REVIEWS_CATEGORIES' ) && is_array( DETAILED_REVIEWS_CATEGORIES )
+        ? DETAILED_REVIEWS_CATEGORIES
+        : array();
+    if ( empty( $categories ) ) {
+        return array();
+    }
 
-	$query = "
-		SELECT rating_id, rating_value, {$wpdb->comments}.comment_post_ID
-		FROM {$wpdb->ratings}
-		INNER JOIN {$wpdb->comments}
-			ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id
-		WHERE {$wpdb->comments}.comment_ID = {$cid}
-		ORDER BY rating_id
-	";
+    $query = $wpdb->prepare(
+        "SELECT rating_id, rating_value, {$wpdb->comments}.comment_post_ID
+        FROM {$wpdb->ratings}
+        INNER JOIN {$wpdb->comments}
+            ON {$wpdb->comments}.comment_ID = {$wpdb->ratings}.comment_id
+        WHERE {$wpdb->comments}.comment_ID = %d
+        ORDER BY rating_id",
+        $cid
+    );
+    $result = $wpdb->get_results( $query );
+    if ( empty( $result ) ) {
+        return array();
+    }
 
-	$result = $wpdb->get_results($query);
-	if (empty($result)) return array();
+    $ratings = array_fill_keys( array_values( $categories ), 0 );
+    foreach ( $result as $rating ) {
+        if ( isset( $categories[ $rating->rating_id ] ) ) {
+            $ratings[ $categories[ $rating->rating_id ] ] = $rating->rating_value;
+        }
+    }
 
-	$ratings = array_fill_keys(array_values($categories), 0);
-
-	foreach ($result as $rating) {
-		if (isset($categories[$rating->rating_id])) {
-			$ratings[$categories[$rating->rating_id]] = $rating->rating_value;
-		}
-	}
-
-	return $ratings;
+    return $ratings;
 }
 
 // return average rating for a single comment
-function get_average_comment_rating($custom_id = null) {
-	global $comment;
+function get_average_comment_rating( $custom_id = null ) {
+    global $comment;
 
-	$cid = isset($comment->comment_ID) ? (int) $comment->comment_ID : 0;
-	if (is_numeric($custom_id)) {
-		$cid = (int) $custom_id;
-	}
-	if ($cid < 1) return 0;
+    $cid = isset( $comment->comment_ID ) ? (int) $comment->comment_ID : 0;
+    if ( is_numeric( $custom_id ) ) {
+        $cid = (int) $custom_id;
+    }
+    if ( $cid < 1 ) {
+        return 0;
+    }
 
-	$ratings = get_comment_ratings($cid);
-	if (empty($ratings)) return 0;
+    $ratings = get_comment_ratings( $cid );
+    if ( empty( $ratings ) ) {
+        return 0;
+    }
 
-	$sum = 0;
-	$count = 0;
-	foreach ($ratings as $rating) {
-		if ($rating > 0) {
-			$sum += $rating;
-			$count++;
-		}
-	}
+    $sum   = 0;
+    $count = 0;
+    foreach ( $ratings as $rating ) {
+        if ( $rating > 0 ) {
+            $sum   += $rating;
+            $count++;
+        }
+    }
 
-	return ($count > 0) ? $sum / $count : 0;
+    return ( $count > 0 ) ? $sum / $count : 0;
 }
 
 // output unordered list of ratings for a specific comment
-function comment_ratings_list($custom_id = null, $return = false) {
-	global $comment;
+function comment_ratings_list( $custom_id = null, $return = false ) {
+    global $comment;
 
-	$cid = isset($comment->comment_ID) ? (int) $comment->comment_ID : 0;
-	if (is_numeric($custom_id)) {
-		$cid = (int) $custom_id;
-	}
-	if ($cid < 1) return;
+    $cid = isset( $comment->comment_ID ) ? (int) $comment->comment_ID : 0;
+    if ( is_numeric( $custom_id ) ) {
+        $cid = (int) $custom_id;
+    }
+    if ( $cid < 1 ) {
+        return;
+    }
 
-	$ratings = get_comment_ratings($cid);
-	if (empty($ratings)) return;
+    $ratings = get_comment_ratings( $cid );
+    if ( empty( $ratings ) ) {
+        return;
+    }
 
-	$html = '<ul class="ratings">';
-	foreach ($ratings as $cat => $rating) {
-		$html .= '<li>';
-		$html .= '<label class="rating_label">' . esc_html($cat) . '</label> ';
-		$html .= '<span class="rating_value">' . num_to_stars($rating) . '</span>';
-		$html .= '</li>';
-	}
-	$html .= '</ul>';
+    $html = '<ul class="ratings">';
+    foreach ( $ratings as $cat => $rating ) {
+        $html .= '<li>';
+        $html .= '<label class="rating_label">' . esc_html( $cat ) . '</label> ';
+        $html .= '<span class="rating_value">' . num_to_stars( $rating ) . '</span>';
+        $html .= '</li>';
+    }
+    $html .= '</ul>';
 
-	if ($return) return $html;
-	echo $html;
+    if ( $return ) {
+        return $html;
+    }
+    echo $html;
 }
+
+
+
+
+
+
 	
 // output table of ratings for a specific comment
 function comment_ratings_table($custom_id = null, $return = false) {
