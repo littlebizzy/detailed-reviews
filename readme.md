@@ -1,5 +1,7 @@
 # Detailed Reviews
 
+Dynamic reviews for WordPress
+
 ## Changelog
 
 ### 1.0.0
