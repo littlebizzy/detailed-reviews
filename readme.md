@@ -27,3 +27,5 @@
 
 #### Optional theme hooks
 - `add_filter( 'detailed_reviews_itemreviewed_type', ... )` — overrides schema.org item type (e.g. `CollegeOrUniversity` instead of `Thing`)
+
+Credit to Dan Grossman and WP Review Site for the original functionality
