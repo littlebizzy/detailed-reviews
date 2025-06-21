@@ -548,9 +548,9 @@ function rs_preprocess( $incoming_comment ) {
             array( 'options' => array( 'min_range' => 1, 'max_range' => 5 ) )
         );
         if ( false === $rate ) {
-            $message  = 'you must rate all required categories from 1 to 5 before submitting your review. your comment text appears below so you can copy and resubmit it:<br><br>';
+            $message  = 'Uou must rate all required categories from 1 to 5 before submitting your review. Your comment text appears below so you can copy and resubmit it:<br><br>';
             $message .= wp_kses_post( $incoming_comment['comment_content'] );
-            $message .= '<br><br><a href="' . esc_url( get_permalink( $pid ) ) . '#respond">← go back to review form</a>';
+            $message .= '<br><br><a href="' . esc_url( get_permalink( $pid ) ) . '#respond">← Go back to review form</a>';
             wp_die( $message, 'rating required' );
         }
     }
@@ -698,7 +698,7 @@ add_action('wp_head', function() {
 			color: #ddd;
 			transition: color 0.05s linear;
 		}
-		table.ratings .rating_value a.on i,
+		table.ratings .rating_value a.selected i,
 		table.ratings .rating_value a.hovered i {
 			color: #f0c040 !important;
 		}
